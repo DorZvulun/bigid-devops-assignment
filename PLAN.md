@@ -32,7 +32,7 @@ Run locally, the flow is the same: `make all` (venv lint test build scan cluster
 - Install the scanner: `brew install trivy`. Trivy produces the SBOM too, so Syft is not needed.
 - `git init` in `big-id/` (done: commit `a6be1a3`).
 - `.gitignore` covers `instructions/`, `.last_session_id`, `.env`, `.venv/`, `__pycache__/`, `*.tfstate*`, `.terraform/`, `sbom*.json` and `trivy*.sarif`.
-- `.env.example` holds variable names only (`ANTHROPIC_API_KEY`, `LLM_PROVIDER`).
+- `.env.example` holds variable names only (`ANTHROPIC_API_KEY`).
 - `gh repo create bigid-devops-assignment --public --source . --push`.
 
 ## Stage 1: App + unit tests (≈1 h)
@@ -163,8 +163,7 @@ Notes:
 - GHCR visibility: no manual step was needed. The package pushed by the workflow inherited **public** visibility from the public repo (verified 2026-11-16 with an anonymous manifest fetch), so the cluster pulls without an `imagePullSecret`.
 
 `make secrets` (the user runs it once, values never land in a file):
-- `gh secret set ANTHROPIC_API_KEY`. This opens a hidden prompt and is optional, because `auto` falls back to GitHub Models.
-- `gh variable set LLM_PROVIDER --body auto`.
+- `gh secret set ANTHROPIC_API_KEY`. This opens a hidden prompt. The key is optional: without it the AI step is skipped (Stage 5).
 
 Done when: a push to `main` turns every job green, the image is visible on GHCR, and SARIF shows up in the Security tab.
 
@@ -176,16 +175,16 @@ Human decision 2026-11-16: this stage runs after Stage 8. The provider is Anthro
 1. Lists the jobs of the current run via the GitHub API (`GITHUB_TOKEN`). It keeps the jobs whose `conclusion == failure`.
    - `gh run view --log-failed` can't be used: it only works once the whole run has finished.
 2. Downloads each failed job's log and keeps the last ~300 lines.
-3. Picks the provider from `LLM_PROVIDER`:
-   - `anthropic`: Anthropic Messages API.
-   - `github`: GitHub Models chat completions.
-   - `auto`: Anthropic if `ANTHROPIC_API_KEY` is set, otherwise GitHub Models.
-   - Model IDs are configurable via env, and the defaults are checked when implementing.
+3. Calls the Anthropic Messages API. The model ID is configurable via env; the default is checked when implementing.
 4. Prompt: "Return: failing step, likely root cause, suggested fix. Max 15 lines, markdown."
 5. Writes the result to `$GITHUB_STEP_SUMMARY` and prints it.
    - On a PR it also posts a PR comment with `gh pr comment`.
 
-Tests: one small test for provider selection (`auto` with/without a key, explicit values).
+No key, no AI (decided 2026-11-16): `ANTHROPIC_API_KEY` is optional. If it is set, the AI step runs. If it is missing (including on fork PRs), the step is skipped and the pipeline result is unchanged. An Anthropic API error is logged as a warning and never fails the job.
+- GitHub Actions cannot read `secrets.*` in a job-level `if:`, so the job maps the secret to a step `env`, and the first step checks it. With no key it writes "AI diagnosis skipped: no ANTHROPIC_API_KEY" to the job summary and exits 0.
+- The script exits 0 on any API error and prints a `::warning::`.
+
+Tests: one small test for the pure logic (redaction and size cap).
 
 Demo: open PR `demo/ai-diagnosis` with a deliberate bug (`/health` returns 500).
 - The unit test fails, AI diagnoses it, and the PR comment appears.

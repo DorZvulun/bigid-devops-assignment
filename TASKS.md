@@ -77,13 +77,13 @@ GitHub Models was retired on 2026-07-30, so there is no provider switch: no `LLM
 
 - [ ] **5.1** Finish `scripts/ai_diagnose.py` from agent E's branch (`worktree-agent-a5ade5687d7763460`). Remove the GitHub Models path and `LLM_PROVIDER`. It fetches the failed-job logs, redacts token-like strings, caps the size, calls the Anthropic API, and writes the diagnosis to the job summary and a PR comment (text only, never executed).
   - Done when: a local dry run against a past failed run prints a diagnosis.
-- [ ] **5.2** Add `make secrets` (`gh secret set ANTHROPIC_API_KEY`, hidden prompt). Remove `LLM_PROVIDER` from `.env.example`.
+- [ ] **5.2** Add `make secrets` (`gh secret set ANTHROPIC_API_KEY`, hidden prompt).
   - Done when: `gh secret list` shows `ANTHROPIC_API_KEY`, and no file in the repo contains the value.
-- [ ] **5.3** Add one small test for the script's pure logic (redaction and size cap). Add CI job `ai-diagnose` (`if: failure()`, `actions: read`, `pull-requests: write`, `timeout-minutes`), and make `notify` depend on it.
-  - Done when: the test passes, actionlint is clean, and on a green run the job shows as skipped.
+- [ ] **5.3** Add one small test for the script's pure logic (redaction and size cap). Add CI job `ai-diagnose` (`if: failure()`, `actions: read`, `pull-requests: write`, `timeout-minutes`), and make `notify` depend on it. The key is optional: with no `ANTHROPIC_API_KEY` the step is skipped (summary note, exit 0), and an API error is a warning, never a failure.
+  - Done when: the test passes, actionlint is clean, on a green run the job shows as skipped, and a failed run without the key still shows `ai-diagnose` green with the "skipped: no key" note.
 - [ ] **5.4** Open demo PR `demo/ai-diagnosis` with a deliberate bug (a failing test).
   - Done when: the run fails, and the PR has an AI comment naming the failing test.
-- [ ] **5.5** Replace the README placeholder with the link to that failed run. Change the "planned" AI labels in `docs/architecture.html` and `docs/explainer.html` to built.
+- [ ] **5.5** Replace the placeholders in `README.md` (How CI works) and `README-EXTENDED.md` (AI failure diagnosis) with the link to that failed run. Change the "planned" AI labels in `docs/architecture.html` and `docs/explainer.html` to built.
   - Done when: the README link opens the failed run, and 7.1 is ticked.
 
 ## Stage 6: Terraform deploy (namespace + app)

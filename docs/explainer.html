@@ -91,8 +91,9 @@
   </table>
 </div>
 <p>The cluster has its own kubeconfig at <code>~/.kube/big-id-k3d-config.yaml</code>. Your default kubeconfig is never touched.</p>
-<details><summary>Browser on <code>localhost:8080</code> shows <code>10.42.0.1</code>, not my IP. Expected.</summary>
-  <p><code>10.42.0.1</code> is the node's bridge gateway, not a pod and not you. Each local hop replaces the source address:</p>
+<details><summary>Browser on <code>localhost:8080</code> shows <code>10.42.x.x</code>, not my IP. Expected.</summary>
+  <p>See it yourself: <code>make trace-hops</code> captures one request at every hop and prints each source address.</p>
+  <p><code>10.42.0.1</code> (or <code>10.42.1.1</code>, <code>10.42.x.0</code>) is a node's address, not a pod and not you. Each local hop replaces the source address:</p>
   <ol>
     <li>Browser connects to <code>127.0.0.1:8080</code>.</li>
     <li>Docker Desktop forwards the port into its VM: source becomes the VM's gateway.</li>

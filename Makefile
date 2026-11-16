@@ -61,7 +61,7 @@ SMOKE_URL ?= http://localhost:8080
 # Dedicated kubeconfig for this cluster: k3d never touches the user's default kubeconfig.
 KUBECONFIG_FILE ?= $(HOME)/.kube/big-id-k3d-config.yaml
 
-.PHONY: cluster-create cluster-delete helm-lint deploy smoke
+.PHONY: cluster-create cluster-delete helm-lint deploy smoke trace-hops
 
 cluster-create:
 	k3d cluster get $(CLUSTER) >/dev/null 2>&1 || k3d cluster create --config k3d-config.yaml
@@ -90,3 +90,7 @@ smoke:
 	done
 	@curl -fsS -H 'X-Forwarded-For: 203.0.113.7' $(SMOKE_URL)/ | grep -q 203.0.113.7 || { echo "smoke: / did not return forwarded IP"; exit 1; }
 	@echo smoke ok
+
+# Show the source address at every local network hop for one request (see README Limitations).
+trace-hops:
+	CLUSTER=$(CLUSTER) SMOKE_URL=$(SMOKE_URL) scripts/trace_hops.sh

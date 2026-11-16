@@ -54,18 +54,18 @@ Grading = the acceptance checklist in the PDF. The last item is easy to forget: 
 | Registry | GHCR (`ghcr.io/<owner>/<image>`), auth via `GITHUB_TOKEN`, public package | decided |
 | Image scan / SBOM | Trivy (fail on fixable HIGH/CRITICAL, SARIF to Security tab) + SBOM artifact | decided after understanding how it works and need to be implemented |
 | Notification | GitHub commit status `ci/pipeline` + job summary, no third-party apps (no Slack) | decided |
-| AI failure diagnosis | Anthropic API only. `ANTHROPIC_API_KEY` is a required secret. Built last, after everything else works | decided |
+| AI failure diagnosis | Anthropic API only. `ANTHROPIC_API_KEY` is an optional secret: without it the AI step is skipped and nothing breaks. Built last, after everything else works | decided |
 
 ### LLM provider (decided 2026-11-16)
 
-Anthropic only. GitHub Models was retired on 2026-07-30, so there is no keyless fallback and no `LLM_PROVIDER` switch. The AI step needs the secret `ANTHROPIC_API_KEY`, set with `make secrets`. It is built last, after the rest of the pipeline works.
+Anthropic only. GitHub Models was retired on 2026-07-30, so there is no keyless fallback and no `LLM_PROVIDER` switch. The secret `ANTHROPIC_API_KEY` (set with `make secrets`) is optional. If it is set, the AI step runs. If it is missing (including on fork PRs), the step is skipped and the pipeline result is unchanged. An Anthropic API error is logged as a warning and never fails the job (decided 2026-11-16). It is built last, after the rest of the pipeline works.
 
 ## Planned layout
 
 ```
 big-id/
 ├── CLAUDE.md, AGENTS.md -> CLAUDE.md, README.md, TASKS.md, PLAN.md
-├── Makefile                 # local entrypoint: all venv lint test run build scan scan-sarif sbom cluster-create cluster-delete helm-lint deploy smoke secrets
+├── Makefile                 # local entrypoint: all venv lint test run build scan scan-sarif sbom cluster-create cluster-delete helm-lint deploy smoke trace-hops secrets
 ├── app/                     # Python app
 ├── tests/                   # unit tests (pytest)
 ├── Dockerfile, .dockerignore
@@ -112,6 +112,8 @@ big-id/
 - Image tag = commit SHA. Never deploy `latest`. On a PR this is the PR head commit, never GitHub's synthetic merge commit (see PLAN.md Stage 4).
 
 ## README must cover
+
+Split (decided 2026-11-16): `README.md` is short (run locally, how CI works, where the image is published, repo layout, links to `docs/*.html` and `README-EXTENDED.md`). Every other item below lives only in `README-EXTENDED.md`.
 
 - How to run locally
 - How CI works
