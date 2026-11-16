@@ -8,7 +8,7 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 |---|---|---|
 | 0 Bootstrap | 20 m | ✅ |
 | 1 App + tests | 1 h | ✅ |
-| 2 Container | 45 m | ⬜ |
+| 2 Container | 45 m | ✅ |
 | 3 Helm + k3d | 1.5 h | ✅ |
 | 4 CI pipeline | 2–3 h | ⬜ |
 | 5 AI diagnosis (done last) | 1.5 h | ⬜ |
@@ -42,8 +42,8 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 
 - [x] **2.1** Check the distroless Python version and pick the matching builder tag.
   - Done when: both versions are noted in a Dockerfile comment. ✅ builder python:3.13-slim-trixie (3.13.18), runtime distroless python3-debian13 (3.13.5), both digest-pinned
-- [ ] **2.2** Write the multi-stage `Dockerfile` and `.dockerignore`. Add `make build`.
-  - Done when: the image is ≤ ~70 MB and `docker run` + `curl /health` returns 200. ⚠️ NOT MET: image is 79.8 MB. The distroless python3-debian13 base alone is 72.7 MB; the app adds 7.1 MB. Run test passed (read-only, uid 65532, /health 200, XFF ok, graceful SIGTERM ~1 s). Needs a human call on the size bar.
+- [x] **2.2** Write the multi-stage `Dockerfile` and `.dockerignore`. Add `make build`.
+  - Done when: the image is ≤ ~80 MB and `docker run` + `curl /health` returns 200. ✅ 79.8 MB (distroless base 72.7 MB + app 7.1 MB; bar raised from ~70 MB by the human). Run test: read-only, uid 65532, /health 200, XFF ok, graceful SIGTERM ~1 s
 - [x] **2.3** Add `make scan` and `make sbom`, both using Trivy.
   - Done when: `make scan` exits 0, and `sbom.cdx.json` is created. ✅ `make scan` exit 0 (0 fixable HIGH/CRITICAL); `sbom.cdx.json` + `trivy.sarif` written
 

@@ -85,7 +85,7 @@ Make targets (the image is tagged with `GIT_SHA ?= $(shell git rev-parse --short
 - `make sbom` runs `trivy image --format cyclonedx --output sbom.cdx.json $(IMAGE):$(GIT_SHA)`.
 - `make scan-sarif` runs the same scan as `make scan` with `--format sarif --output trivy.sarif` and no `--exit-code`. CI uploads it to the Security tab.
 
-Done when: the image is ≤ ~70 MB, `make scan` passes, and `docker run` + `curl localhost:8080/health` returns 200.
+Done when: the image is ≤ ~80 MB (the distroless Python base alone is 72.7 MB), `make scan` passes, and `docker run` + `curl localhost:8080/health` returns 200.
 
 ## Stage 3: Helm chart + local k3d deploy (≈1.5 h)
 

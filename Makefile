@@ -58,14 +58,16 @@ CLUSTER ?= bigid
 NAMESPACE ?= staging
 IMAGE_SOURCE ?= local
 SMOKE_URL ?= http://localhost:8080
-# Project-local kubeconfig: k3d never touches the user's default kubeconfig.
-KUBECONFIG_FILE ?= $(CURDIR)/.kubeconfig
+# Dedicated kubeconfig for this cluster: k3d never touches the user's default kubeconfig.
+KUBECONFIG_FILE ?= $(HOME)/.kube/big-id-k3d-config.yaml
 
 .PHONY: cluster-create cluster-delete helm-lint deploy smoke
 
 cluster-create:
 	k3d cluster get $(CLUSTER) >/dev/null 2>&1 || k3d cluster create --config k3d-config.yaml
+	mkdir -p $(dir $(KUBECONFIG_FILE))
 	k3d kubeconfig get $(CLUSTER) > $(KUBECONFIG_FILE)
+	chmod 600 $(KUBECONFIG_FILE)
 
 cluster-delete:
 	k3d cluster delete $(CLUSTER)

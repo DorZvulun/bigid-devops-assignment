@@ -10,7 +10,7 @@ ports:
     nodeFilters:
       - loadbalancer
 options:
-  # Keep the user's default kubeconfig untouched; make cluster-create writes .kubeconfig instead.
+  # Keep the user's default kubeconfig untouched; make cluster-create writes ~/.kube/big-id-k3d-config.yaml instead.
   kubeconfig:
     updateDefaultKubeconfig: false
     switchCurrentContext: false
