@@ -49,10 +49,10 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 
 ## Stage 3: Helm chart + local k3d
 
-- [ ] **3.1** Write `k3d-config.yaml` and the targets `make cluster` / `make down`.
-  - Done when: `kubectl get nodes` shows 2 nodes Ready.
-- [ ] **3.2** Write the chart `charts/whatsmyip`: Deployment, Service (`LoadBalancer`), optional Ingress (off by default), values for probes/resources/securityContext/existingSecret.
-  - Done when: `make helm-lint` passes with 0 warnings.
+- [x] **3.1** Write `k3d-config.yaml` and the targets `make cluster` / `make down`.
+  - Done when: `kubectl get nodes` shows 2 nodes Ready. ✅ k3d-bigid-server-0 + agent-0 Ready, v1.35.5+k3s1, 0 traefik pods
+- [x] **3.2** Write the chart `charts/whatsmyip`: Deployment, Service (`LoadBalancer`), optional Ingress (off by default), values for probes/resources/securityContext/existingSecret.
+  - Done when: `make helm-lint` passes with 0 warnings. ✅ `1 chart(s) linted, 0 chart(s) failed`
 - [ ] **3.3** Add `make deploy` (`--rollback-on-failure --wait`, local image import).
   - Done when: 2 pods are Running in `staging`.
 - [ ] **3.4** Add `make smoke` (`/health`, `/ready`, and the XFF assert via the LoadBalancer Service on `SMOKE_URL`).
