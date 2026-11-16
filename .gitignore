@@ -1,1 +1,9 @@
 instructions/
+.last_session_id
+.env
+.venv/
+__pycache__/
+*.tfstate*
+.terraform/
+sbom*.json
+trivy*.sarif

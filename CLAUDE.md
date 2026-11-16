@@ -1,0 +1,139 @@
+# CLAUDE.md — BigID DevOps Home Assignment
+
+> Rule: anything marked **[OPEN]** is not decided yet. Do not implement it until the human confirms.
+> Implementation order and details live in `PLAN.md`. Progress is tracked in `TASKS.md`.
+
+## Project
+
+Home assignment for the BigID DevOps Engineer role. The brief is at `instructions/DevOpsHome_assignment.pdf`. It must never be committed, because the repo is public.
+
+Build a tiny web app that returns the client's originating IP. Wrap it in a CI pipeline (order exactly as in the PDF "Deliverables" section):
+
+lint → test → build → scan → push → helm lint → deploy (staging) → smoke test
+
+Two more CI requirements sit outside that sequence:
+- **Notification on success or failure.** Source: the PDF "CI" section, last bullet: "Send a simple notification on success/failure (Slack, GitHub status, or similar)."
+- **AI diagnosis, only when the pipeline fails.** Source: the PDF "AI component" section.
+
+Grading = the acceptance checklist in the PDF. The last item is easy to forget: **the README must link to a failed CI run where the AI diagnosis worked.**
+
+## Working rules
+
+- **Human decides, agent proposes.** Never mark a decision as made unless the human said so explicitly. Present options plus a recommendation, then wait.
+- **Track progress in `TASKS.md`.** Tick a box only after the task's "Done when" check actually passed. Do this in the same change as the work.
+- **`make` is the local entrypoint.** `make all` deploys the whole project on a fresh computer (for testing and the presentation). CI calls the same make targets for every step that also runs locally.
+  - Exception: steps that only make sense in CI live in workflow YAML only. These are the registry push, the commit-status notification and the AI-diagnosis wiring. Pushing a branch or an image is never a make target.
+- **CI completeness is mandatory.** Every step the PDF requires must exist in CI and actually work:
+  - lint, unit tests (fail on failure), build tagged with the commit SHA, vulnerability scan or SBOM, push to a registry
+  - helm lint, deploy to `staging`, smoke test (fail on failure)
+  - success/failure notification, AI diagnosis on failure
+  - No step may be skipped or stubbed.
+- **Tests: sufficient, not bloated.** This is a separate rule from CI completeness.
+  - Unit tests cover the app's real behaviour: IP extraction (header present, missing, multiple hops) and each endpoint (`/`, `/health`, `/ready`).
+  - Keep test LOC at or below app LOC.
+  - The post-deploy smoke test is the integration test. Add no extra test layers (no chart unit tests, no e2e framework).
+- **Pin everything.** That covers tool versions in the Makefile/CI, GitHub Actions by commit SHA, and Python deps via the lock file.
+- **No secrets in code, ever.** That includes the repo, the chart, the Makefile and workflow YAML.
+  - The user supplies every secret at run time through a make target that pushes it to its destination. Example: `make secrets` runs `gh secret set ANTHROPIC_API_KEY`, which reads the value from a hidden prompt or stdin. The value never lands in a file.
+  - `.env.example` lists variable names only. `.env` is gitignored.
+  - The README documents every secret: what it is for, whether it is required, and the command that sets it.
+
+## Stack
+
+| Concern | Choice | Status |
+|---|---|---|
+| App language | Python 3.13, pinned everywhere: local venv, lock files, CI, builder image, distroless runtime | decided |
+| Web framework | Flask + gunicorn (smallest dependency set = smallest attack surface) | decided |
+| Lint / format | ruff (superset of flake8 rules) | decided based on pdf |
+| Tests | pytest | decided based on app language |
+| Container | multi-stage → distroless Python runtime, non-root | requirement in pdf |
+| Local + CI cluster | k3d (built-in Traefik ingress + ServiceLB) | decided |
+| Packaging | Helm chart in `charts/` (Helm v4 locally; same version pinned in CI) | decided |
+| CI | GitHub Actions; public repo `bigid-devops-assignment` | decided |
+| Registry | GHCR (`ghcr.io/<owner>/<image>`), auth via `GITHUB_TOKEN`, public package | decided |
+| Image scan / SBOM | Trivy (fail on fixable HIGH/CRITICAL, SARIF to Security tab) + SBOM artifact | decided after understanding how it works and need to be implemented |
+| Notification | GitHub commit status `ci/pipeline` + job summary, no third-party apps (no Slack) | decided |
+| AI failure diagnosis | Anthropic API **or** GitHub Models; repo variable `LLM_PROVIDER`, default `auto` | decided |
+| Terraform | Bonus last stage: provisions the local k3d cluster | decided (bonus) |
+
+### LLM provider switch (decided)
+
+The AI step runs in **CI**, not in the Helm-deployed app, so the provider switch lives in CI config:
+
+- GitHub repo variable `LLM_PROVIDER=auto|anthropic|github`. The default is `auto`.
+- `anthropic` needs the secret `ANTHROPIC_API_KEY`.
+- `github` uses GitHub Models with `permissions: models: read` and needs no secret.
+- `auto` uses Anthropic if the key exists, otherwise falls back to GitHub Models.
+
+## Planned layout
+
+```
+big-id/
+├── CLAUDE.md, AGENTS.md -> CLAUDE.md, README.md, TASKS.md, PLAN.md
+├── Makefile                 # local entrypoint: all venv lint test run build scan sbom cluster helm-lint deploy smoke down secrets tf-up tf-down
+├── app/                     # Python app
+├── tests/                   # unit tests (pytest)
+├── Dockerfile, .dockerignore
+├── charts/<app>/            # Deployment, Service, optional Ingress, values.yaml
+├── k3d-config.yaml
+├── scripts/ai_diagnose.py   # fetch failed-job logs → LLM → PR comment / summary
+├── infra/                   # bonus: Terraform for local k3d cluster
+└── .github/workflows/ci.yml
+```
+
+## App contract
+
+- `GET /` returns the client's originating IP.
+- `GET /health` is liveness. It returns 200 if the process is up.
+- `GET /ready` is readiness. It returns 200 when the app is ready to serve.
+- Client IP: return the first (left-most) `X-Forwarded-For` entry. Fall back to the socket peer address.
+  - Clients can spoof this header. That is a known limit, not implemented now; the README covers the hardening.
+
+## Security (decided)
+
+**Implement:**
+- **Pod hardening:**
+  - Non-root, `readOnlyRootFilesystem`, drop all capabilities.
+  - `allowPrivilegeEscalation: false`, seccomp `RuntimeDefault`.
+  - No shell in the runtime image.
+- **Secrets:** follow the "No secrets in code, ever" rule above.
+  - The chart has no hardcoded secrets.
+  - The chart supports an `existingSecret` reference through `envFrom`.
+- **CI permissions:** least privilege, set per job (`contents: read` by default). Grant `packages: write` and `pull-requests: write` only to the jobs that need them.
+
+**Document only, in the README "Security hardening" section. Do not implement:**
+- `X-Forwarded-For` spoofing: trust only N proxy hops (Werkzeug `ProxyFix(x_for=N)`) or restrict which proxy IPs are trusted.
+- Fork PRs: no secrets, push or deploy for fork code. Never combine `pull_request_target` with a checkout of PR code.
+- AI step: logs are untrusted input (prompt injection). Redact token-like strings, cap the size, post the output as text only and never execute it.
+- Secret managers beyond plain k8s Secrets: sealed-secrets, External Secrets Operator.
+
+## Reliability (decided: implement and document in the README)
+
+- Liveness, readiness and startup probes, plus resource requests/limits. All are configurable in `values.yaml` with sensible defaults.
+- 2 replicas.
+- Deploy with `helm upgrade --install --atomic --wait --timeout`, so a failed rollout rolls back automatically. In Helm v4, `--atomic` is a deprecated alias of `--rollback-on-failure`. It still works and prints a deprecation warning.
+- gunicorn shuts down gracefully on SIGTERM.
+- CI uses a `concurrency` group per ref (cancel superseded runs) and a `timeout-minutes` on every job.
+- Image tag = commit SHA. Never deploy `latest`. On a PR this is the PR head commit, never GitHub's synthetic merge commit (see PLAN.md Stage 4).
+
+## README must cover
+
+- How to run locally
+- How CI works
+- Where the image is published
+- Every secret and the command that sets it
+- How Trivy is implemented (already written and I like how it is written)
+- Scan/SBOM output and where to find it
+- Link to the failed run where the AI diagnosis worked
+- The decided security measures, plus the "Security hardening" section (document-only items)
+- Reliability measures
+
+## Out of scope
+
+Unless the human asks:
+
+- Go rewrite (the human's later, separate project for fun)
+- ArgoCD/GitOps
+- Multi-env promotion
+- Cloud resources
+- Monitoring stack
