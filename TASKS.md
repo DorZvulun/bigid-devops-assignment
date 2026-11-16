@@ -13,8 +13,8 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 | 4 CI pipeline | 2–3 h | ✅ (except `make secrets`, Stage 5) |
 | 5 AI diagnosis (done last) | 1.5 h | ⬜ |
 | 6 Terraform deploy | 45 m | ✅ |
-| 7 Docs | 1.5 h | ⬜ |
-| 8 Diagram | 30 m | ⬜ |
+| 7 Docs | 1.5 h | ✅ (except the failed-run link, Stage 5) |
+| 8 Diagram | 30 m | ✅ |
 
 ---
 
