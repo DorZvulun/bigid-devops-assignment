@@ -63,14 +63,15 @@ KUBECONFIG_FILE ?= $(HOME)/.kube/big-id-k3d-config.yaml
 
 .PHONY: cluster-create cluster-delete helm-lint deploy smoke trace-hops
 
+# k3d gets KUBECONFIG=$(KUBECONFIG_FILE): `k3d cluster delete` rewrites $$KUBECONFIG even when it holds no k3d entry.
 cluster-create:
-	k3d cluster get $(CLUSTER) >/dev/null 2>&1 || k3d cluster create --config k3d-config.yaml
+	KUBECONFIG=$(KUBECONFIG_FILE) k3d cluster get $(CLUSTER) >/dev/null 2>&1 || KUBECONFIG=$(KUBECONFIG_FILE) k3d cluster create --config k3d-config.yaml
 	mkdir -p $(dir $(KUBECONFIG_FILE))
 	k3d kubeconfig get $(CLUSTER) > $(KUBECONFIG_FILE)
 	chmod 600 $(KUBECONFIG_FILE)
 
 cluster-delete:
-	k3d cluster delete $(CLUSTER)
+	KUBECONFIG=$(KUBECONFIG_FILE) k3d cluster delete $(CLUSTER)
 	rm -f infra/terraform.tfstate infra/terraform.tfstate.backup $(KUBECONFIG_FILE)
 
 helm-lint:
