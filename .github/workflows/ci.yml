@@ -34,6 +34,8 @@ env:
   K3D_SHA256: 06d8f25bc3a971c4eb29e0ff08429b180402db0f4dec838c9eac427e296800a0 # k3d-linux-amd64
   HELM_VERSION: v4.3.1
   HELM_SHA256: 0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b # helm-v4.3.1-linux-amd64.tar.gz
+  TERRAFORM_VERSION: 1.17.1
+  TERRAFORM_SHA256: 4638628058e71a55212b1c563712eac03b902128f40740f3dc8174df12135061 # terraform_1.17.1_linux_amd64.zip
   UV_VERSION: 0.11.28
   UV_SHA256: e490a6464492183c5d4534a5527fb4440f7f2bb2f228162ad7e4afe076dc0224 # uv-x86_64-unknown-linux-gnu.tar.gz, checked by setup-uv
 
@@ -196,18 +198,20 @@ jobs:
           persist-credentials: false
       - name: Set IMAGE (GHCR needs a lowercase owner)
         run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/whatsmyip" >> "$GITHUB_ENV"
-      - name: Install k3d and Helm (pinned, checksum-verified)
+      - name: Install k3d and Terraform (pinned, checksum-verified)
         run: |
           mkdir -p "$RUNNER_TEMP/bin"
           curl -fsSLo "$RUNNER_TEMP/bin/k3d" "https://github.com/k3d-io/k3d/releases/download/${K3D_VERSION}/k3d-linux-amd64"
           echo "${K3D_SHA256}  $RUNNER_TEMP/bin/k3d" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/bin/k3d"
-          curl -fsSLo "$RUNNER_TEMP/helm.tar.gz" "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
-          echo "${HELM_SHA256}  $RUNNER_TEMP/helm.tar.gz" | sha256sum -c -
-          tar -xzf "$RUNNER_TEMP/helm.tar.gz" -C "$RUNNER_TEMP/bin" --strip-components=1 linux-amd64/helm
+          curl -fsSLo "$RUNNER_TEMP/terraform.zip" \
+            "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+          echo "${TERRAFORM_SHA256}  $RUNNER_TEMP/terraform.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/terraform.zip" terraform -d "$RUNNER_TEMP/bin"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - run: make cluster-create
       # Deploy and smoke share a job: the k3d cluster disappears when the job ends.
+      # make deploy runs terraform apply: staging namespace + helm_release of the chart.
       - run: make deploy IMAGE_SOURCE=registry
       - run: make smoke
 

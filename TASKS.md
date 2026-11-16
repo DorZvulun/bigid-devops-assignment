@@ -2,7 +2,7 @@
 
 Tick a box only after its **Done when** check has passed. Details for each stage are in `PLAN.md`.
 
-**Now:** Wave 1 (see `plans/agent-workflow-planning.md`)
+**Now:** Wave 3: push, then fix CI until green (see `plans/agent-workflow-planning.md`)
 
 | Stage | Est. | Status |
 |---|---|---|

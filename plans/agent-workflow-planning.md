@@ -27,7 +27,9 @@ Results: A and C merged. D merged without the `ai-diagnose` job and `mk/ci.mk` (
 | E | ai | Stage 5.1–5.2: `scripts/ai_diagnose.py` (stdlib only), provider-selection test, real model IDs checked | opus | default | 15–20 min |
 | F | tf | Stage 6.1: Terraform k3d provider spike, time-boxed at 20 min. Uses cluster `bigid-tf` on port `8081`, so it does not clash with agent C | sonnet | default | 20 min |
 
-## Wave 2: B and T in parallel, then the main session
+## Wave 2: B and T in parallel, then the main session ✅ done
+
+Results: B and T merged. Local `make cluster-create build deploy smoke` passed with the Terraform deploy. `mk/*.mk` merged back into one `Makefile` (`make -n` identical for all 14 targets). Worktree agents branched from `origin/main`, not local HEAD, so T's `mk/k8s.mk` edit needed a manual fix-up.
 
 | # | Agent | Task | Model | Effort | Est. |
 |---|---|---|---|---|---|
