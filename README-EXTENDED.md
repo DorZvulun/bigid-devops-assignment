@@ -68,7 +68,7 @@ It never breaks the pipeline:
 
 Permissions: `contents: read`, `actions: read` (logs), `pull-requests: write` (comment). The SDK is hash-locked in `requirements-dev.txt`, installed with the same `make venv` as the other jobs.
 
-Link to the failed run where the diagnosis worked: _added after the demo run_
+Link to the failed run where the diagnosis worked: [run 43920128766](https://github.com/DorZvulun/bigid-devops-assignment/actions/runs/43920128766). Demo PR [#1](https://github.com/DorZvulun/bigid-devops-assignment/pull/1) breaks `/health` on purpose; the diagnosis named the failing test `test_probes[/health-ok]`, quoted the assertion and suggested the fix. See the [PR comment](https://github.com/DorZvulun/bigid-devops-assignment/pull/1#issuecomment-6924338410). Attempt 1 of the same run, before the key was set, shows the "Skipped" path.
 
 ## Networking: why Traefik is disabled
 

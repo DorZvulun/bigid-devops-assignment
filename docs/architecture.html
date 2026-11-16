@@ -5179,8 +5179,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <path data-edge-from="lb" data-edge-to="svc" data-edge-key="15" data-edge-id="lb-svc" data-composition-points="370,530;470,530" d="M 370 530 L 470 530" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="svc" data-edge-to="dep" data-edge-label="probes /health /ready" data-edge-key="16" data-edge-id="svc-dep" data-composition-points="640,530;895,530" d="M 640 530 L 895 530" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="cl" data-edge-to="svc" data-edge-label="creates cluster" data-edge-key="17" data-edge-id="cl-svc" data-composition-points="555,420;555,500" d="M 555 420 L 555 500" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="notify" data-edge-to="ai" data-edge-label="on failure" data-edge-key="18" data-edge-id="notify-ai" data-composition-points="1340,110;1400,110" d="M 1340 110 L 1400 110" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="ai" data-edge-to="pr" data-edge-key="19" data-edge-id="ai-pr" data-composition-points="1485,140;1485,230" d="M 1485 140 L 1485 230" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="ai" data-edge-to="notify" data-edge-label="then notify" data-edge-key="18" data-edge-id="ai-notify" data-composition-points="1400,110;1340,110" d="M 1400 110 L 1340 110" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="ai" data-edge-to="pr" data-edge-key="19" data-edge-id="ai-pr" data-composition-points="1485,140;1485,230" d="M 1485 140 L 1485 230" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
         <!-- Components -->
         <g id="node-lint" data-node-id="lint" data-node-label="lint" tabindex="0" role="button" aria-label="Focus lint, ruff, GitHub Actions: .github/workflows/ci.yml" aria-pressed="false" data-node-kind="backend" data-node-sublabel="ruff" data-node-context="GitHub Actions: .github/workflows/ci.yml">
@@ -5329,8 +5329,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="1285" y="274" class="t-muted" font-size="7.5" text-anchor="middle">commit status + job summary</text>
         </g>
 
-        <g id="node-ai" data-node-id="ai" data-node-label="ai-diagnose" tabindex="0" role="button" aria-label="Focus ai-diagnose, planned, on failure, Anthropic, Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="planned, on failure, Anthropic" data-node-tag="planned" data-node-context="Architecture component">
-          <title>ai-diagnose · planned, on failure, Anthropic · Architecture component · planned</title>
+        <g id="node-ai" data-node-id="ai" data-node-label="ai-diagnose" tabindex="0" role="button" aria-label="Focus ai-diagnose, on failure, Claude (Anthropic), Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="on failure, Claude (Anthropic)" data-node-tag="ci" data-node-context="Architecture component">
+          <title>ai-diagnose · on failure, Claude (Anthropic) · Architecture component</title>
           <rect x="1400" y="80" width="170" height="60" rx="6" class="c-mask"/>
           <rect x="1400" y="80" width="170" height="60" rx="6" class="c-external" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(1406 86) scale(0.6875)">
@@ -5338,12 +5338,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="1485" y="108" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ai-diagnose</text>
-        <text data-detail="context" x="1485" y="124" class="t-muted" font-size="9" text-anchor="middle">planned, on failure, Anthropic</text>
-        <text data-detail="fine" x="1485" y="132" class="t-external" font-size="7" text-anchor="middle">planned</text>
+        <text data-detail="context" x="1485" y="124" class="t-muted" font-size="9" text-anchor="middle">on failure, Claude (Anthropic)</text>
+        <text data-detail="fine" x="1485" y="132" class="t-external" font-size="7" text-anchor="middle">skips without API key</text>
         </g>
 
-        <g id="node-pr" data-node-id="pr" data-node-label="PR comment / summary" tabindex="0" role="button" aria-label="Focus PR comment / summary, planned, Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="planned" data-node-tag="planned" data-node-context="Architecture component">
-          <title>PR comment / summary · planned · Architecture component · planned</title>
+        <g id="node-pr" data-node-id="pr" data-node-label="PR comment / summary" tabindex="0" role="button" aria-label="Focus PR comment / summary, text only, Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="text only" data-node-tag="ci" data-node-context="Architecture component">
+          <title>PR comment / summary · text only · Architecture component</title>
           <rect x="1400" y="230" width="170" height="60" rx="6" class="c-mask"/>
           <rect x="1400" y="230" width="170" height="60" rx="6" class="c-external" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(1406 236) scale(0.6875)">
@@ -5351,8 +5351,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="1485" y="258" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PR comment / summary</text>
-        <text data-detail="context" x="1485" y="274" class="t-muted" font-size="9" text-anchor="middle">planned</text>
-        <text data-detail="fine" x="1485" y="282" class="t-external" font-size="7" text-anchor="middle">planned</text>
+        <text data-detail="context" x="1485" y="274" class="t-muted" font-size="9" text-anchor="middle">text only</text>
+        <text data-detail="fine" x="1485" y="282" class="t-external" font-size="7" text-anchor="middle">failed runs only</text>
         </g>
 
         <g id="node-tf" data-node-id="tf" data-node-label="Terraform infra/" tabindex="0" role="button" aria-label="Focus Terraform infra/, namespace + helm_release, Architecture component" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="namespace + helm_release" data-node-context="Architecture component">
@@ -5465,9 +5465,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="514" y="424" width="82" height="14" rx="3" class="c-mask"/>
           <text x="555" y="434" class="t-messagebus" font-size="8" text-anchor="middle">creates cluster</text>
         </g>
-        <g data-detail="context" data-edge-from="notify" data-edge-to="ai" data-edge-label="on failure" data-edge-key="18" data-edge-id="notify-ai">
+        <g data-detail="context" data-edge-from="ai" data-edge-to="notify" data-edge-label="then notify" data-edge-key="18" data-edge-id="ai-notify">
           <rect x="1341" y="90" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="1370" y="100" class="t-messagebus" font-size="8" text-anchor="middle">on failure</text>
+          <text x="1370" y="100" class="t-messagebus" font-size="8" text-anchor="middle">then notify</text>
         </g>
 
 
@@ -5695,7 +5695,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>&bull; Every job calls a make target</li>
-          <li>&bull; ai-diagnose is planned, not in the workflow yet</li>
+          <li>&bull; ai-diagnose runs only on failure; notify waits for it</li>
         </ul>
       </div>
 

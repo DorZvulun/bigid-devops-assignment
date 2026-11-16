@@ -70,7 +70,7 @@ Workflow: `.github/workflows/ci.yml`. Triggers: push to `main`, `pull_request`, 
 - **Concurrency.** One group per ref; a newer run cancels the superseded one. Every job has `timeout-minutes`.
 - **Least privilege.** The workflow default is `contents: read`. Only `scan` gets `security-events: write`, `push` gets `packages: write`, `ai-diagnose` gets `actions: read` and `pull-requests: write`, and `notify` gets `statuses: write`.
 - **Supply chain.** Third-party actions are pinned by full commit SHA. Tool binaries (Trivy, k3d, Helm, Terraform, uv) are pinned by version and verified against a sha256 before use, so a tampered release or a moved tag cannot silently run in the pipeline.
-- **AI failure diagnosis.** On a failed run, an AI step diagnoses the failure ([details](README-EXTENDED.md#ai-failure-diagnosis)). Failed run where it worked: _added after the demo run_
+- **AI failure diagnosis.** On a failed run, an AI step diagnoses the failure ([details](README-EXTENDED.md#ai-failure-diagnosis)). Failed run where it worked: [run 43920128766](https://github.com/DorZvulun/bigid-devops-assignment/actions/runs/43920128766) (demo PR #1, `/health` returns 500), and the resulting [PR comment](https://github.com/DorZvulun/bigid-devops-assignment/pull/1#issuecomment-6924338410).
 - **Notification.** Commit status `ci/pipeline` (success or failure) plus a job summary. No third-party apps.
 
 ## Where the image is published

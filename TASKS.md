@@ -2,7 +2,7 @@
 
 Tick a box only after its **Done when** check has passed. Details for each stage are in `PLAN.md`.
 
-**Now:** Stage 5 (AI diagnosis, last), then the failed-run link in the README (7.1)
+**Now:** all stages done. Final check against the PDF acceptance checklist.
 
 | Stage | Est. | Status |
 |---|---|---|
@@ -11,9 +11,9 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 | 2 Container | 45 m | ✅ |
 | 3 Helm + k3d | 1.5 h | ✅ |
 | 4 CI pipeline | 2–3 h | ✅ |
-| 5 AI diagnosis (done last) | 1.5 h | ⬜ |
+| 5 AI diagnosis (done last) | 1.5 h | ✅ |
 | 6 Terraform deploy | 45 m | ✅ |
-| 7 Docs | 1.5 h | ✅ (except the failed-run link, Stage 5) |
+| 7 Docs | 1.5 h | ✅ |
 | 8 Diagram | 30 m | ✅ |
 
 ---
@@ -75,16 +75,16 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 
 GitHub Models was retired on 2026-07-30, so there is no provider switch: no `LLM_PROVIDER`, no `github` path.
 
-- [ ] **5.1** Finish `scripts/ai_diagnose.py` from agent E's branch (`worktree-agent-a5ade5687d7763460`). Remove the GitHub Models path and `LLM_PROVIDER`. It fetches the failed-job logs, redacts token-like strings, caps the size, calls the Anthropic API, and writes the diagnosis to the job summary and a PR comment (text only, never executed).
-  - Done when: a local dry run against a past failed run prints a diagnosis.
-- [ ] **5.2** Add `make secrets` (`gh secret set ANTHROPIC_API_KEY`, hidden prompt).
-  - Done when: `gh secret list` shows `ANTHROPIC_API_KEY`, and no file in the repo contains the value.
-- [ ] **5.3** Add one small test for the script's pure logic (redaction and size cap). Add CI job `ai-diagnose` (`if: failure()`, `actions: read`, `pull-requests: write`, `timeout-minutes`), and make `notify` depend on it. The key is optional: with no `ANTHROPIC_API_KEY` the step is skipped (summary note, exit 0), and an API error is a warning, never a failure.
-  - Done when: the test passes, actionlint is clean, on a green run the job shows as skipped, and a failed run without the key still shows `ai-diagnose` green with the "skipped: no key" note.
-- [ ] **5.4** Open demo PR `demo/ai-diagnosis` with a deliberate bug (a failing test).
-  - Done when: the run fails, and the PR has an AI comment naming the failing test.
-- [ ] **5.5** Replace the placeholders in `README.md` (How CI works) and `README-EXTENDED.md` (AI failure diagnosis) with the link to that failed run. Change the "planned" AI labels in `docs/architecture.html` and `docs/explainer.html` to built.
-  - Done when: the README link opens the failed run, and 7.1 is ticked.
+- [x] **5.1** Finish `scripts/ai_diagnose.py` from agent E's branch (`worktree-agent-a5ade5687d7763460`). Remove the GitHub Models path and `LLM_PROVIDER`. It fetches the failed-job logs, redacts token-like strings, caps the size, calls the Anthropic API, and writes the diagnosis to the job summary and a PR comment (text only, never executed).
+  - Done when: a local dry run against a past failed run prints a diagnosis. ✅ CI run [43920128766](https://github.com/DorZvulun/bigid-devops-assignment/actions/runs/43920128766) attempt 3: diagnosis printed and posted (`claude-opus-5-5`, SDK 2.9.0). Local: no key → "Skipped", exit 0; bad token → `::warning::`, exit 0. No local key, so the real call was verified in CI.
+- [x] **5.2** Add `make secrets` (`gh secret set ANTHROPIC_API_KEY`, hidden prompt).
+  - Done when: `gh secret list` shows `ANTHROPIC_API_KEY`, and no file in the repo contains the value. ✅ secret set 2026-11-16T17:46:10Z; the job log shows `ANTHROPIC_API_KEY: ***`. `make secrets` refuses to run without a terminal (a `!` run stored an empty value once).
+- [x] **5.3** Add one small test for the script's pure logic (redaction and size cap). Add CI job `ai-diagnose` (`if: failure()`, `actions: read`, `pull-requests: write`, `timeout-minutes`), and make `notify` depend on it. The key is optional: with no `ANTHROPIC_API_KEY` the step is skipped (summary note, exit 0), and an API error is a warning, never a failure.
+  - Done when: the test passes, actionlint is clean, on a green run the job shows as skipped, and a failed run without the key still shows `ai-diagnose` green with the "skipped: no key" note. ✅ 8 tests pass, actionlint clean. Green run [43919437412](https://github.com/DorZvulun/bigid-devops-assignment/actions/runs/43919437412): `ai-diagnose=skipped`. Failed run without key [43920128766](https://github.com/DorZvulun/bigid-devops-assignment/actions/runs/43920128766): `ai-diagnose=success`, summary "Skipped: no `ANTHROPIC_API_KEY` secret."
+- [x] **5.4** Open demo PR `demo/ai-diagnosis` with a deliberate bug (a failing test).
+  - Done when: the run fails, and the PR has an AI comment naming the failing test. ✅ PR #1, run [43920128766](https://github.com/DorZvulun/bigid-devops-assignment/actions/runs/43920128766): `test` failed, `ai-diagnose` named `test_probes[/health-ok]` in a [PR comment](https://github.com/DorZvulun/bigid-devops-assignment/pull/1#issuecomment-6924338410).
+- [x] **5.5** Replace the placeholders in `README.md` (How CI works) and `README-EXTENDED.md` (AI failure diagnosis) with the link to that failed run. Change the "planned" AI labels in `docs/architecture.html` and `docs/explainer.html` to built.
+  - Done when: the README link opens the failed run, and 7.1 is ticked. ✅ both READMEs link the run and the comment; the diagram's AI node is no longer "planned" and its edge now reads `ai-diagnose → notify` (it had `notify → ai-diagnose`); explainer updated.
 
 ## Stage 6: Terraform deploy (namespace + app)
 
@@ -95,8 +95,8 @@ GitHub Models was retired on 2026-07-30, so there is no provider switch: no `LLM
 
 ## Stage 7: Docs
 
-- [ ] **7.1** Write `README.md` covering every item in CLAUDE.md's "README must cover" list, including the failed-run link.
-  - Done when: every item on that list is checked off. ⏳ written (201 lines, every item present); only the failed-run link is missing, added in Stage 5.
+- [x] **7.1** Write `README.md` covering every item in CLAUDE.md's "README must cover" list, including the failed-run link.
+  - Done when: every item on that list is checked off. ✅ split into `README.md` (short) + `README-EXTENDED.md`; failed-run link in both.
 - [x] **7.2** Write the ADHD-friendly HTML explainer covering the architecture and how to run the project.
   - Done when: it opens in a browser and the quick-start commands work. ✅ `docs/explainer.html`; renders in headless Chrome; from a clean state `make all` exit 0 in 41 s (warm caches), curl returns the forwarded IP, `make cluster-delete` works
 

@@ -100,4 +100,5 @@ trace-hops:
 # Optional: without ANTHROPIC_API_KEY the CI ai-diagnose job skips.
 .PHONY: secrets
 secrets:
+	@[ -t 0 ] || { echo "make secrets: run it in a terminal (it needs a hidden prompt; without one gh stores an empty value)" >&2; exit 1; }
 	gh secret set ANTHROPIC_API_KEY

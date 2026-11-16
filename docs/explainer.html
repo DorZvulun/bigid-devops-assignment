@@ -132,7 +132,7 @@
   <tr><td>notify</td><td>Commit status <code>ci/pipeline</code> + job summary, always runs</td><td>5 s</td></tr>
 </table>
 <p>Total: about 4 minutes. On a PR, the image tag is the PR's head commit, never GitHub's merge commit.</p>
-<p><b>Planned, built last:</b> an AI step that runs only when the pipeline fails. It sends the failed logs to the Anthropic API and posts a diagnosis on the PR.</p>
+<p><b>When a run fails:</b> the <code>ai-diagnose</code> job sends the failed logs to Claude and posts a diagnosis on the run summary and the PR (<a href="https://github.com/DorZvulun/bigid-devops-assignment/actions/runs/43920128766">example run</a>, <a href="https://github.com/DorZvulun/bigid-devops-assignment/pull/1#issuecomment-6924338410">example comment</a>). Without an <code>ANTHROPIC_API_KEY</code> it skips. It never fails the pipeline.</p>
 
 <h2 id="find">5. Where things are</h2>
 <table>
