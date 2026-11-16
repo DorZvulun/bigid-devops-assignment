@@ -2,7 +2,7 @@
 
 Tick a box only after its **Done when** check has passed. Details for each stage are in `PLAN.md`.
 
-**Now:** all stages done. Final check against the PDF acceptance checklist.
+**Now:** done. Every stage and every PDF acceptance item is checked.
 
 | Stage | Est. | Status |
 |---|---|---|
@@ -110,7 +110,7 @@ GitHub Models was retired on 2026-07-30, so there is no provider switch: no `LLM
 ## Final acceptance check (from the PDF)
 
 - [x] App, tests and README are present. ✅ `app/whatsmyip.py`, `tests/` (8 tests pass), `README.md` + `README-EXTENDED.md`
-- [ ] CI builds, scans, pushes, deploys and smoke-tests on push/PR, and all of it passes.
+- [x] CI builds, scans, pushes, deploys and smoke-tests on push/PR, and all of it passes. ✅ push: run on `main` `80d3dc8`, every job green. PR: [run 43923740262](https://github.com/DorZvulun/bigid-devops-assignment/actions/runs/43923740262) on PR #2, every job green, image tagged with the PR head SHA `a6f21cb`
 - [x] The Dockerfile is multi-stage and produces a compact image. ✅ builder `python` → `distroless/python3-debian13`, both pinned by digest; image 79.8 MB
 - [x] The Helm chart has configurable probes and resources, and `helm lint` passes. ✅ `values.yaml`: `resources`, `startupProbe`, `livenessProbe`, `readinessProbe`; `helm lint --strict`: 0 failed
 - [x] The scan/SBOM is produced and documented. ✅ run on `80d3dc8`: artifact `sbom` (9 KB), Trivy SARIF in Security tab; README-EXTENDED "Scan and SBOM output"
