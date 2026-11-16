@@ -83,6 +83,7 @@ Make targets (the image is tagged with `GIT_SHA ?= $(shell git rev-parse --short
 - `make build` runs `docker build -t $(IMAGE):$(GIT_SHA) .`
 - `make scan` runs `trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 $(IMAGE):$(GIT_SHA)`.
 - `make sbom` runs `trivy image --format cyclonedx --output sbom.cdx.json $(IMAGE):$(GIT_SHA)`.
+- `make scan-sarif` runs the same scan as `make scan` with `--format sarif --output trivy.sarif` and no `--exit-code`. CI uploads it to the Security tab.
 
 Done when: the image is ≤ ~70 MB, `make scan` passes, and `docker run` + `curl localhost:8080/health` returns 200.
 

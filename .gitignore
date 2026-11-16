@@ -7,3 +7,4 @@ __pycache__/
 .terraform/
 sbom*.json
 trivy*.sarif
+.claude/worktrees/
