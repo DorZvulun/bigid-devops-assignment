@@ -10,7 +10,7 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 | 1 App + tests | 1 h | ✅ |
 | 2 Container | 45 m | ✅ |
 | 3 Helm + k3d | 1.5 h | ✅ |
-| 4 CI pipeline | 2–3 h | ✅ (except `make secrets`, Stage 5) |
+| 4 CI pipeline | 2–3 h | ✅ |
 | 5 AI diagnosis (done last) | 1.5 h | ⬜ |
 | 6 Terraform deploy | 45 m | ✅ |
 | 7 Docs | 1.5 h | ✅ (except the failed-run link, Stage 5) |
@@ -68,19 +68,23 @@ Tick a box only after its **Done when** check has passed. Details for each stage
   - Done when: `docker pull ghcr.io/<owner>/whatsmyip:<sha>` works while logged out. ✅ not needed: the package inherited public visibility from the public repo. Anonymous manifest fetch returned HTTP 200
 - [x] **4.4** Add jobs 6–7: helm-lint, then deploy + smoke on k3d in the runner.
   - Done when: the whole pipeline is green end to end. ✅ all 8 jobs green; deploy (k3d + Terraform + smoke) 75s
-- [ ] **4.5** Add job 8 (notify: commit status + job summary) and `make secrets`.
-  - Done when: the commit shows the `ci/pipeline` status, and the run summary shows the table. ⏳ notify done: commit status `ci/pipeline` = success, job summary table written. `make secrets` moves to Stage 5 (AI).
+- [x] **4.5** Add job 8 (notify: commit status + job summary).
+  - Done when: the commit shows the `ci/pipeline` status, and the run summary shows the table. ✅ commit status `ci/pipeline` = success, job summary table written. `make secrets` moved to 5.2.
 
-## Stage 5: AI failure diagnosis (done last, after Stage 8; Anthropic only)
+## Stage 5: AI failure diagnosis (done last; Anthropic only)
 
-- [ ] **5.1** Write `scripts/ai_diagnose.py`: fetch failed-job logs, select the provider (`auto|anthropic|github`), call the LLM, write the summary + PR comment.
-  - Done when: a local dry run against an old failed run prints a diagnosis.
-- [ ] **5.2** Add one test for provider selection, and add job 9 `ai-diagnose` (`if: failure()`).
-  - Done when: the test passes and the job appears in the workflow graph.
-- [ ] **5.3** Open demo PR `demo/ai-diagnosis` with a deliberate bug.
-  - Done when: the PR has an AI comment naming the failing test.
-- [ ] **5.4** Verify both providers: run with the Anthropic key, then with `LLM_PROVIDER=github`.
-  - Done when: both runs produced a diagnosis.
+GitHub Models was retired on 2026-07-30, so there is no provider switch: no `LLM_PROVIDER`, no `github` path.
+
+- [ ] **5.1** Finish `scripts/ai_diagnose.py` from agent E's branch (`worktree-agent-a5ade5687d7763460`). Remove the GitHub Models path and `LLM_PROVIDER`. It fetches the failed-job logs, redacts token-like strings, caps the size, calls the Anthropic API, and writes the diagnosis to the job summary and a PR comment (text only, never executed).
+  - Done when: a local dry run against a past failed run prints a diagnosis.
+- [ ] **5.2** Add `make secrets` (`gh secret set ANTHROPIC_API_KEY`, hidden prompt). Remove `LLM_PROVIDER` from `.env.example`.
+  - Done when: `gh secret list` shows `ANTHROPIC_API_KEY`, and no file in the repo contains the value.
+- [ ] **5.3** Add one small test for the script's pure logic (redaction and size cap). Add CI job `ai-diagnose` (`if: failure()`, `actions: read`, `pull-requests: write`, `timeout-minutes`), and make `notify` depend on it.
+  - Done when: the test passes, actionlint is clean, and on a green run the job shows as skipped.
+- [ ] **5.4** Open demo PR `demo/ai-diagnosis` with a deliberate bug (a failing test).
+  - Done when: the run fails, and the PR has an AI comment naming the failing test.
+- [ ] **5.5** Replace the README placeholder with the link to that failed run. Change the "planned" AI labels in `docs/architecture.html` and `docs/explainer.html` to built.
+  - Done when: the README link opens the failed run, and 7.1 is ticked.
 
 ## Stage 6: Terraform deploy (namespace + app)
 
