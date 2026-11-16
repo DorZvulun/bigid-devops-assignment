@@ -2,7 +2,7 @@
 
 Tick a box only after its **Done when** check has passed. Details for each stage are in `PLAN.md`.
 
-**Now:** Stage 7.2 (HTML explainer), then Stage 5 (AI diagnosis, last)
+**Now:** Stage 5 (AI diagnosis, last), then the failed-run link in the README (7.1)
 
 | Stage | Est. | Status |
 |---|---|---|
@@ -93,13 +93,13 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 
 - [ ] **7.1** Write `README.md` covering every item in CLAUDE.md's "README must cover" list, including the failed-run link.
   - Done when: every item on that list is checked off. ⏳ written (201 lines, every item present); only the failed-run link is missing, added in Stage 5.
-- [ ] **7.2** Write the ADHD-friendly HTML explainer covering the architecture and how to run the project.
-  - Done when: it opens in a browser and the quick-start commands work.
+- [x] **7.2** Write the ADHD-friendly HTML explainer covering the architecture and how to run the project.
+  - Done when: it opens in a browser and the quick-start commands work. ✅ `docs/explainer.html`; renders in headless Chrome; from a clean state `make all` exit 0 in 41 s (warm caches), curl returns the forwarded IP, `make cluster-delete` works
 
 ## Stage 8: Diagram
 
-- [ ] **8.1** Run `/archify` for the architecture diagram (CI flow + runtime topology).
-  - Done when: it is linked from the README and the HTML.
+- [x] **8.1** Run `/archify` for the architecture diagram (CI flow + runtime topology).
+  - Done when: it is linked from the README and the HTML. ✅ `docs/architecture.html`, linked from README (Architecture) and the explainer
 
 ---
 

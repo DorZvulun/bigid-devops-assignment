@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>whatsmyip: how it works and how to run it</title>
+<style>
+  :root { --bg:#fff; --fg:#1d1d1f; --muted:#5f6368; --card:#f5f6f8; --line:#dcdfe4; --accent:#1a73e8; --ok:#188038; --code:#eef1f5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#121417; --fg:#e8eaed; --muted:#9aa0a6; --card:#1c1f24; --line:#2e333a; --accent:#8ab4f8; --ok:#81c995; --code:#23272e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:820px; margin:0 auto; padding:32px 20px 64px; }
+  h1 { font-size:1.7rem; margin:0 0 4px; }
+  h2 { font-size:1.25rem; margin:40px 0 12px; padding-top:12px; border-top:1px solid var(--line); }
+  .sub { color:var(--muted); margin:0 0 24px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; }
+  nav a { padding:4px 10px; border:1px solid var(--line); border-radius:999px; text-decoration:none; color:var(--fg); font-size:.9rem; }
+  a { color:var(--accent); }
+  .next { background:var(--card); border-left:4px solid var(--accent); padding:16px 18px; border-radius:6px; }
+  .next b { display:block; margin-bottom:6px; }
+  .win { border-left-color:var(--ok); }
+  code { background:var(--code); padding:1px 5px; border-radius:4px; font:.9em ui-monospace,SFMono-Regular,Menlo,monospace; }
+  pre { background:var(--code); padding:12px 14px; border-radius:6px; overflow-x:auto; margin:8px 0; }
+  pre code { background:none; padding:0; }
+  ol.steps { padding-left:0; list-style:none; counter-reset:s; }
+  ol.steps > li { counter-increment:s; position:relative; padding:0 0 18px 44px; }
+  ol.steps > li::before { content:counter(s); position:absolute; left:0; top:0; width:30px; height:30px; border-radius:50%; background:var(--accent); color:var(--bg); display:grid; place-items:center; font-weight:700; }
+  .time { color:var(--muted); font-size:.85rem; }
+  table { border-collapse:collapse; width:100%; margin:8px 0; font-size:.95rem; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  .flow { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0; }
+  .flow span { background:var(--card); border:1px solid var(--line); border-radius:6px; padding:4px 9px; font:.85rem ui-monospace,Menlo,monospace; }
+  .flow i { color:var(--muted); font-style:normal; }
+  details { background:var(--card); border-radius:6px; padding:10px 14px; margin:8px 0; }
+  summary { cursor:pointer; font-weight:600; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>whatsmyip</h1>
+<p class="sub">A tiny web app that returns your IP, shipped through a full CI pipeline into a local Kubernetes cluster.</p>
+
+<nav>
+  <a href="#run">1. Run it</a>
+  <a href="#works">2. What works</a>
+  <a href="#request">3. Request path</a>
+  <a href="#ci">4. CI pipeline</a>
+  <a href="#find">5. Where things are</a>
+  <a href="#stuck">6. Stuck?</a>
+  <a href="architecture.html">Diagram ↗</a>
+</nav>
+
+<div class="next">
+  <b>Start here: one command deploys everything.</b>
+  <pre><code>make all</code></pre>
+  <span class="time">Measured: 41 s with warm caches. The first run on a new machine takes longer: it downloads the base images, k3s and the ~60 MB Trivy DB.</span>
+</div>
+
+<h2 id="run">1. Run it</h2>
+<ol class="steps">
+  <li><b>Check the tools are installed.</b> <span class="time">~10 s</span>
+    <pre><code>for t in docker k3d terraform helm uv trivy; do command -v $t >/dev/null || echo "missing: $t"; done</code></pre>
+    No output = all present. Docker must be running.
+  </li>
+  <li><b>Deploy everything.</b> <span class="time">~1 min (warm caches)</span>
+    <pre><code>make all</code></pre>
+    Runs, in order: <code>venv lint test build scan cluster-create deploy smoke</code>. Last line: <code>smoke ok</code>.
+  </li>
+  <li><b>Call the app.</b> <span class="time">~5 s</span>
+    <pre><code>curl -H 'X-Forwarded-For: 198.51.100.4' localhost:8080/</code></pre>
+    Returns <code>{"ip":"198.51.100.4"}</code>.
+  </li>
+  <li><b>Tear it down when done.</b> <span class="time">~10 s</span>
+    <pre><code>make cluster-delete</code></pre>
+    Removes the cluster, the Terraform state and the cluster kubeconfig.
+  </li>
+</ol>
+
+<h2 id="works">2. What works after <code>make all</code></h2>
+<div class="next win">
+  <b>The app runs in Kubernetes on <code>http://localhost:8080</code>, 2 pods, namespace <code>staging</code>.</b>
+  <table>
+    <tr><th>Try</th><th>You get</th></tr>
+    <tr><td><code>curl localhost:8080/health</code></td><td><code>{"status":"ok"}</code></td></tr>
+    <tr><td><code>curl localhost:8080/ready</code></td><td><code>{"status":"ready"}</code></td></tr>
+    <tr><td><code>KUBECONFIG=~/.kube/big-id-k3d-config.yaml kubectl -n staging get pods</code></td><td>2 pods <code>Running</code></td></tr>
+  </table>
+</div>
+<p>The cluster has its own kubeconfig at <code>~/.kube/big-id-k3d-config.yaml</code>. Your default kubeconfig is never touched.</p>
+<p>Without an <code>X-Forwarded-For</code> header, <code>/</code> returns a cluster-internal address. Cause: the local load balancer rewrites the source IP. That is expected.</p>
+
+<h2 id="request">3. Request path</h2>
+<div class="flow">
+  <span>client</span><i>→</i><span>localhost:8080</span><i>→</i><span>k3d load balancer</span><i>→</i><span>Service (LoadBalancer, ServiceLB)</span><i>→</i><span>2 pods: gunicorn :8080</span>
+</div>
+<ul>
+  <li><b>App:</b> Flask + gunicorn, distroless image, non-root, read-only filesystem, no shell.</li>
+  <li><b>Answer:</b> the left-most <code>X-Forwarded-For</code> entry, else the connection's peer address.</li>
+  <li><b>Deploy:</b> Terraform (<code>infra/</code>) creates the <code>staging</code> namespace and a Helm release of <code>charts/whatsmyip</code>. A failed rollout rolls back on its own.</li>
+  <li><b>Cluster:</b> created by the k3d CLI (<code>make cluster-create</code>), not by Terraform. Traefik is off, so forwarded headers reach the app unchanged.</li>
+</ul>
+
+<h2 id="ci">4. CI pipeline</h2>
+<p>Every push to <code>main</code>, every PR, or a manual run. Each job calls the same <code>make</code> targets as your laptop.</p>
+<div class="flow">
+  <span>lint</span><i>→</i><span>test</span><i>→</i><span>build</span><i>→</i><span>scan</span><i>→</i><span>push</span><i>→</i><span>helm-lint</span><i>→</i><span>deploy + smoke</span><i>→</i><span>notify</span>
+</div>
+<table>
+  <tr><th>Job</th><th>Does</th><th>Took (first green run)</th></tr>
+  <tr><td>lint</td><td><code>ruff</code> check + format check</td><td>10 s</td></tr>
+  <tr><td>test</td><td><code>pytest</code>; a failing test fails the run</td><td>9 s</td></tr>
+  <tr><td>build</td><td>Docker image tagged with the commit SHA</td><td>32 s</td></tr>
+  <tr><td>scan</td><td>Trivy blocks fixable HIGH/CRITICAL CVEs, uploads SARIF, saves the SBOM</td><td>47 s</td></tr>
+  <tr><td>push</td><td>Image to GHCR (only if the scan passed)</td><td>39 s</td></tr>
+  <tr><td>helm-lint</td><td><code>helm lint --strict</code></td><td>17 s</td></tr>
+  <tr><td>deploy</td><td>k3d cluster on the runner, <code>terraform apply</code>, then <code>make smoke</code></td><td>75 s</td></tr>
+  <tr><td>notify</td><td>Commit status <code>ci/pipeline</code> + job summary, always runs</td><td>5 s</td></tr>
+</table>
+<p>Total: about 4 minutes. On a PR, the image tag is the PR's head commit, never GitHub's merge commit.</p>
+<p><b>Planned, built last:</b> an AI step that runs only when the pipeline fails. It sends the failed logs to the Anthropic API and posts a diagnosis on the PR.</p>
+
+<h2 id="find">5. Where things are</h2>
+<table>
+  <tr><th>Thing</th><th>Where</th></tr>
+  <tr><td>Image</td><td><code>ghcr.io/dorzvulun/whatsmyip:&lt;commit sha&gt;</code> (public, no login)</td></tr>
+  <tr><td>CVE findings</td><td>Repo → Security → Code scanning, category <code>trivy</code></td></tr>
+  <tr><td>SBOM</td><td>Run artifact <code>sbom</code> → <code>sbom.cdx.json</code></td></tr>
+  <tr><td>Pipeline result</td><td>Commit status <code>ci/pipeline</code> and the run's summary page</td></tr>
+  <tr><td>Full details</td><td><a href="../README.md">README.md</a></td></tr>
+  <tr><td>Diagram</td><td><a href="architecture.html">architecture.html</a> (CI flow + runtime)</td></tr>
+</table>
+
+<h2 id="stuck">6. Stuck?</h2>
+<details><summary><code>make all</code> fails at <code>build</code> or <code>cluster-create</code></summary>
+  <p>Cause: Docker is not running. Fix: start Docker Desktop, then run <code>make all</code> again.</p>
+</details>
+<details><summary><code>cluster-create</code> fails: port 8080 in use</summary>
+  <p>Cause: another process listens on 8080. Fix: <code>lsof -i :8080</code>, stop that process, then <code>make cluster-delete all</code>.</p>
+</details>
+<details><summary><code>smoke: /ready failed</code></summary>
+  <p>Cause: pods are not ready. Check: <code>KUBECONFIG=~/.kube/big-id-k3d-config.yaml kubectl -n staging get pods</code>, then <code>kubectl describe pod</code> on the failing one.</p>
+</details>
+<details><summary><code>scan</code> fails</summary>
+  <p>Cause: Trivy found a fixable HIGH or CRITICAL CVE. Fix: bump the base image digest in <code>Dockerfile</code> or the pinned dependency in <code>app/requirements.txt</code>.</p>
+</details>
+
+</main>
+</body>
+</html>

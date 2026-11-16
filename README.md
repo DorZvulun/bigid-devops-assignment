@@ -185,7 +185,8 @@ Documented only:
 
 ## Architecture
 
-See [docs/architecture.html](docs/architecture.html).
+- Diagram (CI flow and runtime topology): [docs/architecture.html](docs/architecture.html)
+- Step-by-step explainer (run it, request path, CI, troubleshooting): [docs/explainer.html](docs/explainer.html)
 
 ## Repo layout
 
