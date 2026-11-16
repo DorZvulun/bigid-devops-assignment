@@ -8,7 +8,7 @@ A tiny Flask app that returns the client's originating IP, shipped through a ful
 | `GET /health` | 200 while the process is up (liveness) |
 | `GET /ready` | 200 when ready to serve (readiness) |
 
-Contents: [Run locally](#run-locally) · [How CI works](#how-ci-works) · [Deploy](#deploy) · [Image](#where-the-image-is-published) · [Secrets](#secrets) · [Trivy](#image-vulnerability-scan-trivy) · [Scan and SBOM output](#scan-and-sbom-output) · [AI diagnosis](#ai-failure-diagnosis) · [Networking](#networking-why-traefik-is-disabled) · [Security](#security) · [Reliability](#reliability) · [Architecture](#architecture) · [Layout](#repo-layout)
+Contents: [Run locally](#run-locally) · [How CI works](#how-ci-works) · [Deploy](#deploy) · [Image](#where-the-image-is-published) · [Secrets](#secrets) · [Trivy](#image-vulnerability-scan-trivy) · [Scan and SBOM output](#scan-and-sbom-output) · [AI diagnosis](#ai-failure-diagnosis) · [Networking](#networking-why-traefik-is-disabled) · [Security](#security) · [Reliability](#reliability) · [Limitations](#limitations) · [Architecture](#architecture) · [Layout](#repo-layout)
 
 ## Run locally
 
@@ -35,7 +35,7 @@ The app is then on `http://localhost:8080`. The cluster's kubeconfig is `~/.kube
 KUBECONFIG=~/.kube/big-id-k3d-config.yaml kubectl -n staging get pods
 ```
 
-Locally, `/` without an `X-Forwarded-For` header returns a cluster-internal address, because ServiceLB rewrites the source IP.
+Locally, `/` without an `X-Forwarded-For` header returns a cluster-internal address such as `10.42.0.1`, not your IP. See [Limitations](#local-requests-show-a-cluster-internal-ip).
 
 | Target | Does |
 |---|---|
@@ -182,6 +182,30 @@ Documented only:
 - **Graceful shutdown:** gunicorn drains on SIGTERM (`terminationGracePeriodSeconds: 30`). Because the root filesystem is read-only, gunicorn runs with `--no-control-socket` and worker temp files in `/dev/shm`.
 - **CI:** concurrency group per ref, `timeout-minutes` on every job.
 - **Image tag = commit SHA**, never `latest`.
+
+## Limitations
+
+### One environment only (`staging`)
+
+The brief asks for a deploy to `staging`, and multi-environment promotion is out of scope. The namespace is a variable (`make deploy NAMESPACE=<name>`, Terraform `var.namespace`), but setting it does **not** add a second environment:
+
+- **One Terraform state.** `infra/terraform.tfstate` tracks a single namespace. Changing `NAMESPACE` makes Terraform destroy `staging` and create the new namespace in its place.
+- **One port 80.** Every release creates a `LoadBalancer` Service on port 80. ServiceLB binds each node port once, so a second Service would stay `<pending>`.
+
+To add environments: one Terraform workspace (or state file) per environment, a different `service.port` per environment (or an Ingress that routes by host), and a CI deploy job per environment.
+
+### Local requests show a cluster-internal IP
+
+Opening `http://localhost:8080` in a browser returns an address like `10.42.0.1`. That is the node's bridge gateway, not a pod and not the client. Each hop on the local path replaces the source address:
+
+1. The browser connects to `127.0.0.1:8080`.
+2. Docker Desktop forwards the port into its VM, so the source becomes the VM's gateway.
+3. The k3d load balancer (nginx, plain TCP proxy) opens a new connection, so the source becomes its container IP.
+4. ServiceLB and kube-proxy (`externalTrafficPolicy: Cluster`) apply SNAT, so the source becomes the node gateway.
+
+Even with every hop preserved, the best result locally would be `127.0.0.1` or Docker's gateway: the browser and the server run on the same machine, so there is no public client IP to see.
+
+The app itself is correct. In production it sits behind an internet-facing load balancer or ingress that sets `X-Forwarded-For`, and it returns the left-most entry. `make smoke` tests exactly that path by sending the header.
 
 ## Architecture
 
