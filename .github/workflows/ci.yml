@@ -1,6 +1,6 @@
 # CI pipeline, in the PDF "Deliverables" order:
 # lint -> test -> build -> scan -> push -> helm-lint -> deploy (+ smoke) -> notify (always).
-# The AI diagnosis job is added in the last stage (see TASKS.md).
+# ai-diagnose runs only on failure, before notify.
 # Every job calls the same make targets you run locally. Only the GHCR push lives in YAML alone.
 
 name: CI
@@ -215,8 +215,35 @@ jobs:
       - run: make deploy IMAGE_SOURCE=registry
       - run: make smoke
 
-  notify:
+  ai-diagnose:
+    # Runs only when a job above failed. Never fails itself: no key -> skip, error -> warning.
     needs: [lint, test, build, scan, push, helm-lint, deploy]
+    if: failure()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read # read the failed jobs' logs
+      pull-requests: write # post the diagnosis as a PR comment
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.GIT_SHA }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          checksum: ${{ env.UV_SHA256 }}
+      - run: make venv
+      - name: Diagnose the failure with Claude
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: .venv/bin/python scripts/ai_diagnose.py
+
+  notify:
+    needs: [lint, test, build, scan, push, helm-lint, deploy, ai-diagnose]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

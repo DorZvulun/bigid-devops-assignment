@@ -21,7 +21,7 @@ VENV := .venv
 venv: $(VENV)/.stamp
 
 $(VENV)/.stamp: requirements-dev.txt
-	uv venv --python $(PYTHON_VERSION) $(VENV)
+	uv venv --clear --python $(PYTHON_VERSION) $(VENV)
 	uv pip install --python $(VENV) --require-hashes -r requirements-dev.txt
 	touch $@
 
@@ -94,3 +94,10 @@ smoke:
 # Show the source address at every local network hop for one request (see README Limitations).
 trace-hops:
 	CLUSTER=$(CLUSTER) SMOKE_URL=$(SMOKE_URL) scripts/trace_hops.sh
+
+# --- Secrets ---
+# Push secrets to GitHub Actions. gh asks for the value in a hidden prompt; it never lands in a file.
+# Optional: without ANTHROPIC_API_KEY the CI ai-diagnose job skips.
+.PHONY: secrets
+secrets:
+	gh secret set ANTHROPIC_API_KEY

@@ -53,7 +53,20 @@ The image is distroless with only Flask and gunicorn installed, so the expected 
 
 ## AI failure diagnosis
 
-A job that runs only when the pipeline fails. It sends the failed-job logs to the Anthropic API and posts the diagnosis as a PR comment or run summary. It uses the `ANTHROPIC_API_KEY` secret (see [Secrets](#secrets)). Without the key (for example on fork PRs) the step is skipped, and an API error only logs a warning: the AI step never breaks the pipeline. Added in the final stage.
+The `ai-diagnose` job runs only when a job before it failed (`if: failure()`). It runs `scripts/ai_diagnose.py`:
+
+1. Lists the run's jobs through the GitHub REST API and downloads the log of each failed job (last 300 lines). The run is still in progress, so `gh run view --log-failed` cannot be used.
+2. Redacts token-like strings (GitHub and Anthropic tokens, AWS key IDs, JWTs, bearer tokens, `password=`/`token=` values) and keeps at most the last 60,000 characters.
+3. Sends the logs to Claude (`claude-opus-5-5`, override with `ANTHROPIC_MODEL`) through the official `anthropic` Python SDK. The system prompt marks the logs as untrusted data. Server-side fallbacks are on, so a safety refusal is retried on a fallback model.
+4. Writes the answer (failing step, root cause, suggested fix) to the job summary and, on a PR, posts it as a PR comment. `@` mentions are neutralized so the text cannot ping anyone. The output is text only and never executed.
+
+It never breaks the pipeline:
+
+- No `ANTHROPIC_API_KEY` (not set, or a fork PR): the job writes "Skipped" to the summary and passes.
+- Any error (GitHub API, Anthropic API, refusal): it prints a `::warning::` and passes.
+- `notify` waits for it, but does not count it toward the `ci/pipeline` status.
+
+Permissions: `contents: read`, `actions: read` (logs), `pull-requests: write` (comment). The SDK is hash-locked in `requirements-dev.txt`, installed with the same `make venv` as the other jobs.
 
 Link to the failed run where the diagnosis worked: _added after the demo run_
 

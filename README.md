@@ -63,11 +63,12 @@ Workflow: `.github/workflows/ci.yml`. Triggers: push to `main`, `pull_request`, 
 | `push` | scan | `docker push` to GHCR |
 | `helm-lint` | push | `make helm-lint` |
 | `deploy` | helm-lint | Creates a k3d cluster on the runner, `make deploy` (from GHCR), then `make smoke` in the same job, because the cluster disappears when the job ends |
+| `ai-diagnose` | all, `if: failure()` | Sends the failed jobs' logs to Claude, posts the diagnosis to the run summary and the PR. Skips without `ANTHROPIC_API_KEY`; never fails |
 | `notify` | all, `if: always()` | Sets commit status `ci/pipeline` and writes a job summary table |
 
 - **Image tag = commit SHA.** On a pull request it is the PR head commit, not the synthetic merge commit. `latest` is never used.
 - **Concurrency.** One group per ref; a newer run cancels the superseded one. Every job has `timeout-minutes`.
-- **Least privilege.** The workflow default is `contents: read`. Only `scan` gets `security-events: write`, `push` gets `packages: write`, and `notify` gets `statuses: write`.
+- **Least privilege.** The workflow default is `contents: read`. Only `scan` gets `security-events: write`, `push` gets `packages: write`, `ai-diagnose` gets `actions: read` and `pull-requests: write`, and `notify` gets `statuses: write`.
 - **Supply chain.** Third-party actions are pinned by full commit SHA. Tool binaries (Trivy, k3d, Helm, Terraform, uv) are pinned by version and verified against a sha256 before use, so a tampered release or a moved tag cannot silently run in the pipeline.
 - **AI failure diagnosis.** On a failed run, an AI step diagnoses the failure ([details](README-EXTENDED.md#ai-failure-diagnosis)). Failed run where it worked: _added after the demo run_
 - **Notification.** Commit status `ci/pipeline` (success or failure) plus a job summary. No third-party apps.
