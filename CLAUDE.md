@@ -52,7 +52,7 @@ Grading = the acceptance checklist in the PDF. The last item is easy to forget: 
 | Deploy | Terraform in `infra/`: `kubernetes_namespace` (staging) + `helm_release` (the chart). `make deploy` runs `terraform apply`, locally and in CI. Terraform never creates the cluster; `make cluster-create` does (k3d CLI) | decided |
 | CI | GitHub Actions; public repo `bigid-devops-assignment` | decided |
 | Registry | GHCR (`ghcr.io/<owner>/<image>`), auth via `GITHUB_TOKEN`, public package | decided |
-| Image scan / SBOM | Trivy (fail on fixable HIGH/CRITICAL, SARIF to Security tab) + SBOM artifact | decided after understanding how it works and need to be implemented |
+| Image scan / SBOM | Trivy (fail on fixable HIGH/CRITICAL, SARIF to Security tab) + SBOM artifact | decided, implemented |
 | Notification | GitHub commit status `ci/pipeline` + job summary, no third-party apps (no Slack) | decided |
 | AI failure diagnosis | Anthropic API only. `ANTHROPIC_API_KEY` is an optional secret: without it the AI step is skipped and nothing breaks. Built last, after everything else works | decided |
 

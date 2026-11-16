@@ -49,6 +49,7 @@ Locally, `/` without an `X-Forwarded-For` header returns a cluster-internal addr
 | `smoke` | Check `/health`, `/ready`, and that `/` echoes a forwarded IP |
 | `trace-hops` | Capture one request at every network hop and print the source address each hop sees |
 | `cluster-delete` | Delete the cluster, Terraform state and kubeconfig |
+| `secrets` | Set the optional `ANTHROPIC_API_KEY` GitHub secret from a hidden prompt (run it in a terminal) |
 
 ## How CI works
 
@@ -94,7 +95,7 @@ charts/whatsmyip/     Helm chart
 infra/                Terraform: staging namespace + helm_release
 k3d-config.yaml       local cluster definition
 .github/workflows/    ci.yml
-scripts/              trace_hops.sh (make trace-hops)
+scripts/              ai_diagnose.py (CI ai-diagnose job), trace_hops.sh (make trace-hops)
 docs/                 explainer.html, architecture.html
 README-EXTENDED.md    everything not in this README
 ```

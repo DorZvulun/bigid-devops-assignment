@@ -17,7 +17,7 @@ Deploying is a Helm release driven by Terraform (`infra/`):
 | Secret | Purpose | Required | Set with |
 |---|---|---|---|
 | `GITHUB_TOKEN` | GHCR push, commit status, SARIF upload | Automatic, per run | Nothing to set |
-| `ANTHROPIC_API_KEY` | AI failure diagnosis (added in the final stage) | No. Without it the AI step is skipped and the pipeline is unaffected | `make secrets` (runs `gh secret set ANTHROPIC_API_KEY`, hidden prompt; the value never lands in a file) |
+| `ANTHROPIC_API_KEY` | AI failure diagnosis | No. Without it the AI step is skipped and the pipeline is unaffected | `make secrets` (runs `gh secret set ANTHROPIC_API_KEY`, hidden prompt; the value never lands in a file). Run it in a terminal: without one, `gh` would store an empty value, so the target refuses |
 
 Nothing secret is in the repo, chart, Makefile or workflow. `.env.example` lists variable names only and `.env` is not tracked. App secrets reach the pod through the chart's `existingSecret`, a pre-existing Kubernetes Secret injected with `envFrom`. The chart never creates secrets. For production, use sealed-secrets or External Secrets Operator.
 

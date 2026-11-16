@@ -101,7 +101,7 @@
     <li>ServiceLB and kube-proxy (<code>externalTrafficPolicy: Cluster</code>) apply SNAT: source becomes the node gateway.</li>
   </ol>
   <p>Best case locally would be <code>127.0.0.1</code> or Docker's gateway. Browser and server run on the same machine, so there is no public client IP to see.</p>
-  <p>The app is correct. In production an internet-facing load balancer or ingress sets <code>X-Forwarded-For</code>, and the app returns the left-most entry. <code>make smoke</code> tests that path by sending the header. Details: README → Limitations.</p>
+  <p>The app is correct. In production an internet-facing load balancer or ingress sets <code>X-Forwarded-For</code>, and the app returns the left-most entry. <code>make smoke</code> tests that path by sending the header. Details: <a href="../README-EXTENDED.md#local-requests-show-a-cluster-internal-ip">README-EXTENDED → Limitations</a>.</p>
 </details>
 
 <h2 id="request">3. Request path</h2>
@@ -118,7 +118,7 @@
 <h2 id="ci">4. CI pipeline</h2>
 <p>Every push to <code>main</code>, every PR, or a manual run. Each job calls the same <code>make</code> targets as your laptop.</p>
 <div class="flow">
-  <span>lint</span><i>→</i><span>test</span><i>→</i><span>build</span><i>→</i><span>scan</span><i>→</i><span>push</span><i>→</i><span>helm-lint</span><i>→</i><span>deploy + smoke</span><i>→</i><span>notify</span>
+  <span>lint</span><i>→</i><span>test</span><i>→</i><span>build</span><i>→</i><span>scan</span><i>→</i><span>push</span><i>→</i><span>helm-lint</span><i>→</i><span>deploy + smoke</span><i>→</i><span>ai-diagnose (on failure)</span><i>→</i><span>notify</span>
 </div>
 <table>
   <tr><th>Job</th><th>Does</th><th>Took (first green run)</th></tr>
@@ -129,6 +129,7 @@
   <tr><td>push</td><td>Image to GHCR (only if the scan passed)</td><td>39 s</td></tr>
   <tr><td>helm-lint</td><td><code>helm lint --strict</code></td><td>17 s</td></tr>
   <tr><td>deploy</td><td>k3d cluster on the runner, <code>terraform apply</code>, then <code>make smoke</code></td><td>75 s</td></tr>
+  <tr><td>ai-diagnose</td><td>Only when a job failed: sends the failed logs to Claude, posts the diagnosis. Skips without <code>ANTHROPIC_API_KEY</code>; never fails the run</td><td>skipped (green run)</td></tr>
   <tr><td>notify</td><td>Commit status <code>ci/pipeline</code> + job summary, always runs</td><td>5 s</td></tr>
 </table>
 <p>Total: about 4 minutes. On a PR, the image tag is the PR's head commit, never GitHub's merge commit.</p>
@@ -141,7 +142,7 @@
   <tr><td>CVE findings</td><td>Repo → Security → Code scanning, category <code>trivy</code></td></tr>
   <tr><td>SBOM</td><td>Run artifact <code>sbom</code> → <code>sbom.cdx.json</code></td></tr>
   <tr><td>Pipeline result</td><td>Commit status <code>ci/pipeline</code> and the run's summary page</td></tr>
-  <tr><td>Full details</td><td><a href="../README.md">README.md</a></td></tr>
+  <tr><td>Full details</td><td><a href="../README.md">README.md</a> (short), <a href="../README-EXTENDED.md">README-EXTENDED.md</a> (everything else)</td></tr>
   <tr><td>Diagram</td><td><a href="architecture.html">architecture.html</a> (CI flow + runtime)</td></tr>
 </table>
 

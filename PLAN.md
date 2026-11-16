@@ -16,7 +16,7 @@ Names (decided):
    lint ─▶ test ─▶ build ─▶ scan ─▶ push ─▶ helm-lint ─▶ deploy+smoke ─▶ ai-diagnose (on failure) ─▶ notify (always)
                                 │ push                                    │
                                 ▼                                         ▼
-                          ghcr.io/<owner>/whatsmyip:<sha>      LLM (Anthropic | GitHub Models)
+                          ghcr.io/<owner>/whatsmyip:<sha>      LLM (Anthropic)
                                 │ pull                                    │
                                 ▼                                         ▼
    k3d cluster (in runner / on laptop)                     PR comment + job summary
@@ -150,7 +150,7 @@ Done when: `make cluster-create build deploy smoke` passes from a clean laptop s
 | 5 | `push` | YAML only (no make target): download the image artifact, `docker load`, log in to GHCR, push `:<sha>` | scan | `packages: write` |
 | 6 | `helm-lint` | `make helm-lint` | push | – |
 | 7 | `deploy` | install k3d + Terraform (pinned, checksum-verified), `make cluster-create`, `make deploy IMAGE_SOURCE=registry`, `make smoke` | helm-lint | – |
-| 8 | `ai-diagnose` | `if: failure()`: see Stage 5 | jobs 1–7 | `actions: read`, `pull-requests: write`, `models: read` |
+| 8 | `ai-diagnose` | `if: failure()`: see Stage 5 | jobs 1–7 | `contents: read`, `actions: read`, `pull-requests: write` |
 | 9 | `notify` | `if: always()`: commit status `ci/pipeline` on the head SHA + job summary table. On failure the status `target_url` points at the run summary, which holds the AI diagnosis | all | `statuses: write` |
 
 Notes:
@@ -171,17 +171,17 @@ Done when: a push to `main` turns every job green, the image is visible on GHCR,
 
 Human decision 2026-11-16: this stage runs after Stage 8. The provider is Anthropic only (GitHub Models was retired on 2026-07-30), so the `LLM_PROVIDER` switch and the `github` path in agent E's script are removed in this stage. Agent E's script (branch `worktree-agent-a5ade5687d7763460`) is kept for this stage. The `ai-diagnose` CI job and `make secrets` are added here too.
 
-`scripts/ai_diagnose.py` uses the stdlib only (`urllib`), so it adds no dependencies:
+`scripts/ai_diagnose.py` (built 2026-11-16) calls Claude through the official `anthropic` SDK, hash-locked in `requirements-dev.txt`. GitHub REST calls use the stdlib (`urllib`):
 1. Lists the jobs of the current run via the GitHub API (`GITHUB_TOKEN`). It keeps the jobs whose `conclusion == failure`.
    - `gh run view --log-failed` can't be used: it only works once the whole run has finished.
 2. Downloads each failed job's log and keeps the last ~300 lines.
-3. Calls the Anthropic Messages API. The model ID is configurable via env; the default is checked when implementing.
+3. Redacts token-like strings, caps the logs at the last 60,000 characters, then calls Claude: `claude-opus-5-5` (override with `ANTHROPIC_MODEL`), effort medium, server-side fallbacks on.
 4. Prompt: "Return: failing step, likely root cause, suggested fix. Max 15 lines, markdown."
 5. Writes the result to `$GITHUB_STEP_SUMMARY` and prints it.
-   - On a PR it also posts a PR comment with `gh pr comment`.
+   - On a PR it also posts a PR comment through the REST API (`/issues/{PR_NUMBER}/comments`). `@` mentions are neutralized.
 
 No key, no AI (decided 2026-11-16): `ANTHROPIC_API_KEY` is optional. If it is set, the AI step runs. If it is missing (including on fork PRs), the step is skipped and the pipeline result is unchanged. An Anthropic API error is logged as a warning and never fails the job.
-- GitHub Actions cannot read `secrets.*` in a job-level `if:`, so the job maps the secret to a step `env`, and the first step checks it. With no key it writes "AI diagnosis skipped: no ANTHROPIC_API_KEY" to the job summary and exits 0.
+- GitHub Actions cannot read `secrets.*` in a job-level `if:`, so the job maps the secret to a step `env`, and the script checks it. With no key it writes "Skipped: no `ANTHROPIC_API_KEY` secret." to the job summary and exits 0.
 - The script exits 0 on any API error and prints a `::warning::`.
 
 Tests: one small test for the pure logic (redaction and size cap).
