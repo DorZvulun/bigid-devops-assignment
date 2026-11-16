@@ -1,12 +1,12 @@
 # Agent workflow planning: parallel execution of PLAN.md
 
-Status: **ready for Wave 0**. All open decisions are resolved.
+Status: **Wave 0 done. Ready for Wave 1.** All open decisions are resolved.
 
 The work splits into **4 waves**. At most **5 agents can run in parallel**, all in Wave 1. The rest has to run in order.
 
 Time estimates are agent wall-clock, not human hours.
 
-## Wave 0: main session, sequential (~5 min)
+## Wave 0: main session, sequential (~5 min) ✅ done
 
 - **0.3:** `git init`, extend `.gitignore`, add `.env.example`.
 - **Makefile skeleton (temporary split, decided):** root `Makefile` defines `IMAGE` and `GIT_SHA`, then `include mk/*.mk`.
@@ -68,6 +68,7 @@ This includes the `tf-up` / `tf-down` targets from Stage 6.2, which come after a
 - Agents never tick boxes in `TASKS.md`. The main session ticks each box after it re-runs that task's "Done when" check during the merge.
 - Agents touch only the files listed in their task, plus their own `mk/*.mk` file.
 - Agent F must not use cluster name `bigid` or port `8080`.
+- `mk/*.mk` files must run on GNU Make 3.81 (the macOS default): no `.ONESHELL`, `.SHELLFLAGS` or `!=`. Use the root `Makefile` variables `IMAGE`, `GIT_SHA` and `PYTHON_VERSION`; do not redefine them.
 
 ## Risks
 
