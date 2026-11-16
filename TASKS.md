@@ -7,7 +7,7 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 | Stage | Est. | Status |
 |---|---|---|
 | 0 Bootstrap | 20 m | ✅ |
-| 1 App + tests | 1 h | ⬜ |
+| 1 App + tests | 1 h | ✅ |
 | 2 Container | 45 m | ⬜ |
 | 3 Helm + k3d | 1.5 h | ⬜ |
 | 4 CI pipeline | 2–3 h | ⬜ |
@@ -31,12 +31,12 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 
 ## Stage 1: App + unit tests
 
-- [ ] **1.1** Add `requirements-dev.txt` and the Makefile targets `venv lint test run`.
-  - Done when: `make venv` creates `.venv` with ruff and pytest installed.
-- [ ] **1.2** Write `app/whatsmyip.py` with `/`, `/health` and `/ready`. Write `app/requirements.txt` with pinned versions.
-  - Done when: `make run` + `curl -H 'X-Forwarded-For: 1.2.3.4' localhost:8080/` returns `{"ip":"1.2.3.4"}`.
-- [ ] **1.3** Write `tests/test_app.py`: the XFF cases plus all 3 endpoints.
-  - Done when: `make lint test` passes, and test LOC ≤ app LOC.
+- [x] **1.1** Add `requirements-dev.txt` and the Makefile targets `venv lint test run`.
+  - Done when: `make venv` creates `.venv` with ruff and pytest installed. ✅ ruff 0.17.5, pytest 9.2.0, Python 3.13.18
+- [x] **1.2** Write `app/whatsmyip.py` with `/`, `/health` and `/ready`. Write `app/requirements.txt` with pinned versions.
+  - Done when: `make run` + `curl -H 'X-Forwarded-For: 1.2.3.4' localhost:8080/` returns `{"ip":"1.2.3.4"}`. ✅ flask 3.1.3, gunicorn 27.0.1
+- [x] **1.3** Write `tests/test_app.py`: the XFF cases plus all 3 endpoints.
+  - Done when: `make lint test` passes, and test LOC ≤ app LOC. ✅ 6 passed; test 17 LOC ≤ app 22 LOC
 
 ## Stage 2: Container
 
