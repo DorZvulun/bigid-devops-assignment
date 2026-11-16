@@ -1,0 +1,68 @@
+image:
+  repository: ghcr.io/dorzvulun/whatsmyip
+  tag: "" # required: set to the commit SHA, never latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+containerPort: 8080
+
+# Gives gunicorn time to drain on SIGTERM.
+terminationGracePeriodSeconds: 30
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  periodSeconds: 2
+  timeoutSeconds: 2
+  failureThreshold: 30
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 2
+  failureThreshold: 3
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+service:
+  type: LoadBalancer
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  host: "" # empty = match any host
+
+# Name of a pre-existing Secret, injected with envFrom. The chart never creates secrets.
+existingSecret: ""
+# Plain, non-secret env vars.
+env: {}
