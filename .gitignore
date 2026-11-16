@@ -8,3 +8,4 @@ __pycache__/
 sbom*.json
 trivy*.sarif
 .claude/worktrees/
+.kubeconfig

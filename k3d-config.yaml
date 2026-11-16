@@ -10,6 +10,10 @@ ports:
     nodeFilters:
       - loadbalancer
 options:
+  # Keep the user's default kubeconfig untouched; make cluster-create writes .kubeconfig instead.
+  kubeconfig:
+    updateDefaultKubeconfig: false
+    switchCurrentContext: false
   k3s:
     extraArgs:
       # Traefik off: the app is exposed through ServiceLB (Service type LoadBalancer).
