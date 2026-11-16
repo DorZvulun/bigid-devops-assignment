@@ -2,11 +2,11 @@
 
 Tick a box only after its **Done when** check has passed. Details for each stage are in `PLAN.md`.
 
-**Now:** Stage 0, Task 0.4
+**Now:** Wave 1 (see `plans/agent-workflow-planning.md`)
 
 | Stage | Est. | Status |
 |---|---|---|
-| 0 Bootstrap | 20 m | ⬜ |
+| 0 Bootstrap | 20 m | ✅ |
 | 1 App + tests | 1 h | ⬜ |
 | 2 Container | 45 m | ⬜ |
 | 3 Helm + k3d | 1.5 h | ⬜ |
@@ -26,8 +26,8 @@ Tick a box only after its **Done when** check has passed. Details for each stage
   - Done when: `.gitignore` contains `instructions/`. ✅
 - [x] **0.3** Run `git init`. Extend `.gitignore` with `.env`, `.venv/`, `__pycache__/`, `*.tfstate*`, `.terraform/`, `sbom*.json`, `trivy*.sarif`. Add `.env.example`.
   - Done when: `git status` shows no `.env` and no PDF. ✅
-- [ ] **0.4** Create the public repo `bigid-devops-assignment` and push it (`gh repo create bigid-devops-assignment --public --source . --push`).
-  - Done when: the repo URL opens in a browser.
+- [x] **0.4** Create the public repo `bigid-devops-assignment` and push it (`gh repo create bigid-devops-assignment --public --source . --push`).
+  - Done when: the repo URL opens in a browser. ✅ https://github.com/DorZvulun/bigid-devops-assignment
 
 ## Stage 1: App + unit tests
 
