@@ -10,7 +10,7 @@ PYTHON_VERSION := 3.13
 
 .DEFAULT_GOAL := all
 .PHONY: all
-all: venv lint test build scan cluster deploy smoke
+all: venv lint test build scan cluster-create deploy smoke
 
 # Temporary split for parallel work (Waves 1-2): each agent owns one mk/*.mk file.
 # Merged back into this file at the end of Wave 2.

@@ -23,7 +23,7 @@ Names (decided):
      client ─▶ k3d LB (:8080) ─▶ Service (LoadBalancer, ServiceLB) ─▶ Deployment (2 pods, ns: staging)
 ```
 
-Run locally, the flow is the same: `make all` (venv lint test build scan cluster deploy smoke) builds the image and imports it into k3d instead of pulling it from GHCR.
+Run locally, the flow is the same: `make all` (venv lint test build scan cluster-create deploy smoke) builds the image and imports it into k3d instead of pulling it from GHCR.
 
 ---
 
@@ -112,17 +112,17 @@ Done when: the image is ≤ ~70 MB, `make scan` passes, and `docker run` + `curl
 - `env: {}` for plain non-secret env vars.
 
 Make targets:
-- `make cluster` runs `k3d cluster create --config k3d-config.yaml`. It is idempotent.
+- `make cluster-create` runs `k3d cluster create --config k3d-config.yaml`. It is idempotent.
 - `make helm-lint` runs `helm lint charts/whatsmyip`.
 - `make deploy`:
   - Runs `helm upgrade --install whatsmyip charts/whatsmyip -n staging --create-namespace --rollback-on-failure --wait --timeout 3m --set image.repository=… --set image.tag=$(GIT_SHA)`.
   - Locally it runs `k3d image import` first, using `IMAGE_SOURCE=local|registry`.
-- `make smoke` (base URL is `SMOKE_URL ?= http://localhost:8080`, so the Terraform cluster on `:8081` can override it):
+- `make smoke` (base URL is `SMOKE_URL ?= http://localhost:8080`, so another cluster or port can override it):
   - `curl -fsS $(SMOKE_URL)/health` and `/ready`.
   - `curl -fsS -H 'X-Forwarded-For: 203.0.113.7' $(SMOKE_URL)/` and assert that `203.0.113.7` is in the body.
   - Retries for up to 30 s.
-- `make down` runs `k3d cluster delete bigid`.
-- `make all` runs `venv lint test build scan cluster deploy smoke`. It is the one command for a fresh computer.
+- `make cluster-delete` runs `k3d cluster delete bigid`.
+- `make all` runs `venv lint test build scan cluster-create deploy smoke`. It is the one command for a fresh computer.
 
 Why Traefik is disabled (the README explains this too):
 - By default, Traefik does not trust `X-Forwarded-*` headers from untrusted IPs. It replaces them with its own.
@@ -130,7 +130,7 @@ Why Traefik is disabled (the README explains this too):
 - So with Traefik in the path, `/` would return that internal Docker IP, not the client's IP, and the smoke test's XFF check would fail.
 - ServiceLB forwards connections without touching HTTP headers, so the client's `X-Forwarded-For` reaches the app unchanged. This is also exactly the spoofing risk the README explains.
 
-Done when: `make cluster build deploy smoke` passes from a clean laptop state, and `helm lint` is clean.
+Done when: `make cluster-create build deploy smoke` passes from a clean laptop state, and `helm lint` is clean.
 
 ## Stage 4: CI pipeline (≈2–3 h incl. debugging)
 
@@ -149,7 +149,7 @@ Done when: `make cluster build deploy smoke` passes from a clean laptop state, a
 | 4 | `scan` | load the image, SARIF + SBOM steps with `if: always()`, then the `make scan` gate. Upload SARIF + SBOM artifact | build | `security-events: write` |
 | 5 | `push` | YAML only (no make target): download the image artifact, `docker load`, log in to GHCR, push `:<sha>` | scan | `packages: write` |
 | 6 | `helm-lint` | `make helm-lint` | push | – |
-| 7 | `deploy` | install k3d (pinned), `make cluster`, `make deploy IMAGE_SOURCE=registry`, `make smoke` | helm-lint | – |
+| 7 | `deploy` | install k3d (pinned), `make cluster-create`, `make deploy IMAGE_SOURCE=registry`, `make smoke` | helm-lint | – |
 | 8 | `ai-diagnose` | `if: failure()`: see Stage 5 | jobs 1–7 | `actions: read`, `pull-requests: write`, `models: read` |
 | 9 | `notify` | `if: always()`: commit status `ci/pipeline` on the head SHA + job summary table. On failure the status `target_url` points at the run summary, which holds the AI diagnosis | all | `statuses: write` |
 
@@ -168,7 +168,9 @@ Notes:
 
 Done when: a push to `main` turns every job green, the image is visible on GHCR, and SARIF shows up in the Security tab.
 
-## Stage 5: AI failure diagnosis (≈1.5 h)
+## Stage 5: AI failure diagnosis (≈1.5 h), done last
+
+Human decision 2026-11-16: this stage runs after Stage 8. The provider is **[OPEN]** because GitHub Models was retired on 2026-07-30. Agent E's script (branch `worktree-agent-a5ade5687d7763460`) is kept for this stage. The `ai-diagnose` CI job and `make secrets` are added here too.
 
 `scripts/ai_diagnose.py` uses the stdlib only (`urllib`), so it adds no dependencies:
 1. Lists the jobs of the current run via the GitHub API (`GITHUB_TOKEN`). It keeps the jobs whose `conclusion == failure`.
@@ -191,12 +193,9 @@ Demo: open PR `demo/ai-diagnosis` with a deliberate bug (`/health` returns 500).
 
 Done when: the demo PR has an AI comment that names the failing test, and the run link has been copied into the README.
 
-## Stage 6: Terraform bonus: local cluster (≈1 h, time-boxed)
+## Stage 6: dropped
 
-`infra/` holds the k3d cluster plus the `staging` namespace, with the provider pinned.
-- `make tf-up` and `make tf-down` are alternatives to `make cluster` and `make down`.
-
-**Risk:** the community k3d Terraform providers are pre-1.0 and lightly maintained. Spend 20 minutes on a spike first. If cluster creation is unreliable, record the finding in the README instead of fighting it.
+Terraform was dropped on 2026-11-16. The spike showed the only k3d provider (`pvotal-tech/k3d` 0.0.7) crash-looping k3s. The cluster is created with `make cluster-create`.
 
 ## Stage 7: Docs (≈1.5 h)
 
@@ -220,4 +219,3 @@ Done when: the demo PR has an AI comment that names the failing test, and the ru
 1. **Distroless/builder Python version mismatch** breaks the container at run time. Both are pinned to 3.13; confirm the distroless version in task 2.1.
 2. **Pulling from GHCR fails in CI** if the package is private. Stage 4 has the one-time manual visibility step.
 3. **Debugging CI loops are slow.** Use `act` for quick checks of the `lint`/`test` jobs, and use `workflow_dispatch` reruns.
-4. **The community k3d Terraform providers are immature.** Stage 6 is time-boxed.

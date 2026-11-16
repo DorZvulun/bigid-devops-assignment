@@ -15,7 +15,9 @@ Time estimates are agent wall-clock, not human hours.
 - **0.4:** `gh repo create bigid-devops-assignment --public --source . --push`.
   - Approved by the human.
 
-## Wave 1: 5 agents in parallel, each in its own git worktree
+## Wave 1: 5 agents in parallel, each in its own git worktree ✅ done
+
+Results: A and C merged. D merged without the `ai-diagnose` job and `mk/ci.mk` (both wait for the AI stage). E is kept on its branch for the AI stage, which runs last. F's Terraform spike failed with the provider, so Terraform was dropped.
 
 | # | Agent | Task | Model | Effort | Est. |
 |---|---|---|---|---|---|
@@ -30,7 +32,7 @@ Time estimates are agent wall-clock, not human hours.
 | # | Agent | Task | Model | Effort | Est. |
 |---|---|---|---|---|---|
 | B | container | Stage 2: check the distroless Python version, write `Dockerfile` and `.dockerignore`, `mk/container.mk` (`build scan sbom`) | sonnet | default | 10–15 min |
-| — | main session | Stage 3.3–3.4: local `make cluster build deploy smoke`. Needs B's image and C's chart | — | — | 10 min |
+| — | main session | Stage 3.3–3.4: local `make cluster-create build deploy smoke`. Needs B's image and C's chart | — | — | 10 min |
 | — | main session | Makefile merge: fold `mk/*.mk` back into one `Makefile` (see below) | — | — | 2–5 min |
 
 ### Makefile merge (last step of Wave 2)
@@ -42,7 +44,6 @@ Time estimates are agent wall-clock, not human hours.
 5. Re-run `make lint test build scan` as a final check.
 
 From Wave 3 on, every change goes into the single `Makefile`.
-This includes the `tf-up` / `tf-down` targets from Stage 6.2, which come after agent F's spike.
 
 ## Wave 3: CI loop plus docs
 

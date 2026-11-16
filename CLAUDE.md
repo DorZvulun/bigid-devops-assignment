@@ -53,10 +53,9 @@ Grading = the acceptance checklist in the PDF. The last item is easy to forget: 
 | Registry | GHCR (`ghcr.io/<owner>/<image>`), auth via `GITHUB_TOKEN`, public package | decided |
 | Image scan / SBOM | Trivy (fail on fixable HIGH/CRITICAL, SARIF to Security tab) + SBOM artifact | decided after understanding how it works and need to be implemented |
 | Notification | GitHub commit status `ci/pipeline` + job summary, no third-party apps (no Slack) | decided |
-| AI failure diagnosis | Anthropic API **or** GitHub Models; repo variable `LLM_PROVIDER`, default `auto` | decided |
-| Terraform | Bonus last stage: provisions the local k3d cluster | decided (bonus) |
+| AI failure diagnosis | Provider **[OPEN]**: GitHub Models was retired on 2026-07-30, so the planned fallback is gone. Decided in the AI stage, which runs last | **[OPEN]** |
 
-### LLM provider switch (decided)
+### LLM provider switch (**[OPEN]**, was decided before GitHub Models was retired)
 
 The AI step runs in **CI**, not in the Helm-deployed app, so the provider switch lives in CI config:
 
@@ -70,14 +69,13 @@ The AI step runs in **CI**, not in the Helm-deployed app, so the provider switch
 ```
 big-id/
 ├── CLAUDE.md, AGENTS.md -> CLAUDE.md, README.md, TASKS.md, PLAN.md
-├── Makefile                 # local entrypoint: all venv lint test run build scan sbom cluster helm-lint deploy smoke down secrets tf-up tf-down
+├── Makefile                 # local entrypoint: all venv lint test run build scan scan-sarif sbom cluster-create cluster-delete helm-lint deploy smoke secrets
 ├── app/                     # Python app
 ├── tests/                   # unit tests (pytest)
 ├── Dockerfile, .dockerignore
 ├── charts/<app>/            # Deployment, Service, optional Ingress, values.yaml
 ├── k3d-config.yaml
 ├── scripts/ai_diagnose.py   # fetch failed-job logs → LLM → PR comment / summary
-├── infra/                   # bonus: Terraform for local k3d cluster
 └── .github/workflows/ci.yml
 ```
 
@@ -138,3 +136,4 @@ Unless the human asks:
 - Multi-env promotion
 - Cloud resources
 - Monitoring stack
+- Terraform. Dropped on 2026-11-16: the only k3d Terraform provider crash-looped k3s. The cluster is created with `make cluster-create` (`k3d cluster create --config k3d-config.yaml`).

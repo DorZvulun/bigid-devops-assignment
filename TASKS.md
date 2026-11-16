@@ -11,8 +11,8 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 | 2 Container | 45 m | ⬜ |
 | 3 Helm + k3d | 1.5 h | ⬜ |
 | 4 CI pipeline | 2–3 h | ⬜ |
-| 5 AI diagnosis | 1.5 h | ⬜ |
-| 6 Terraform (bonus) | 1 h | ⬜ |
+| 5 AI diagnosis (done last) | 1.5 h | ⬜ |
+| 6 Terraform | – | dropped |
 | 7 Docs | 1.5 h | ⬜ |
 | 8 Diagram | 30 m | ⬜ |
 
@@ -49,7 +49,7 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 
 ## Stage 3: Helm chart + local k3d
 
-- [x] **3.1** Write `k3d-config.yaml` and the targets `make cluster` / `make down`.
+- [x] **3.1** Write `k3d-config.yaml` and the targets `make cluster-create` / `make cluster-delete`.
   - Done when: `kubectl get nodes` shows 2 nodes Ready. ✅ k3d-bigid-server-0 + agent-0 Ready, v1.35.5+k3s1, 0 traefik pods
 - [x] **3.2** Write the chart `charts/whatsmyip`: Deployment, Service (`LoadBalancer`), optional Ingress (off by default), values for probes/resources/securityContext/existingSecret.
   - Done when: `make helm-lint` passes with 0 warnings. ✅ `1 chart(s) linted, 0 chart(s) failed`
@@ -71,7 +71,7 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 - [ ] **4.5** Add job 8 (notify: commit status + job summary) and `make secrets`.
   - Done when: the commit shows the `ci/pipeline` status, and the run summary shows the table.
 
-## Stage 5: AI failure diagnosis
+## Stage 5: AI failure diagnosis (done last, after Stage 8; provider [OPEN])
 
 - [ ] **5.1** Write `scripts/ai_diagnose.py`: fetch failed-job logs, select the provider (`auto|anthropic|github`), call the LLM, write the summary + PR comment.
   - Done when: a local dry run against an old failed run prints a diagnosis.
@@ -82,12 +82,9 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 - [ ] **5.4** Verify both providers: run with the Anthropic key, then with `LLM_PROVIDER=github`.
   - Done when: both runs produced a diagnosis.
 
-## Stage 6: Terraform bonus (time-boxed)
+## Stage 6: Terraform (dropped)
 
-- [ ] **6.1** 20-minute spike on the k3d provider.
-  - Done when: it works, or the README records why not.
-- [ ] **6.2** Write `infra/` (cluster + `staging` ns) and `make tf-up` / `tf-down`.
-  - Done when: `make tf-up deploy smoke` passes.
+Dropped on 2026-11-16. See PLAN.md Stage 6.
 
 ## Stage 7: Docs
 

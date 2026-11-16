@@ -3,12 +3,12 @@ NAMESPACE ?= staging
 IMAGE_SOURCE ?= local
 SMOKE_URL ?= http://localhost:8080
 
-.PHONY: cluster down helm-lint deploy smoke
+.PHONY: cluster-create cluster-delete helm-lint deploy smoke
 
-cluster:
+cluster-create:
 	k3d cluster get $(CLUSTER) >/dev/null 2>&1 || k3d cluster create --config k3d-config.yaml
 
-down:
+cluster-delete:
 	k3d cluster delete $(CLUSTER)
 
 helm-lint:
