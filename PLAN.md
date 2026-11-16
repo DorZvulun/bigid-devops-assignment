@@ -114,8 +114,8 @@ Done when: the image is ≤ ~70 MB, `make scan` passes, and `docker run` + `curl
 Make targets:
 - `make cluster-create` runs `k3d cluster create --config k3d-config.yaml`. It is idempotent.
 - `make helm-lint` runs `helm lint charts/whatsmyip`.
-- `make deploy`:
-  - Runs `helm upgrade --install whatsmyip charts/whatsmyip -n staging --create-namespace --rollback-on-failure --wait --timeout 3m --set image.repository=… --set image.tag=$(GIT_SHA)`.
+- `make deploy` (Terraform, see Stage 6):
+  - Runs `terraform -chdir=infra init -input=false` then `terraform -chdir=infra apply -auto-approve -input=false -var image_repository=$(IMAGE) -var image_tag=$(GIT_SHA)`.
   - Locally it runs `k3d image import` first, using `IMAGE_SOURCE=local|registry`.
 - `make smoke` (base URL is `SMOKE_URL ?= http://localhost:8080`, so another cluster or port can override it):
   - `curl -fsS $(SMOKE_URL)/health` and `/ready`.
@@ -149,7 +149,7 @@ Done when: `make cluster-create build deploy smoke` passes from a clean laptop s
 | 4 | `scan` | load the image, SARIF + SBOM steps with `if: always()`, then the `make scan` gate. Upload SARIF + SBOM artifact | build | `security-events: write` |
 | 5 | `push` | YAML only (no make target): download the image artifact, `docker load`, log in to GHCR, push `:<sha>` | scan | `packages: write` |
 | 6 | `helm-lint` | `make helm-lint` | push | – |
-| 7 | `deploy` | install k3d (pinned), `make cluster-create`, `make deploy IMAGE_SOURCE=registry`, `make smoke` | helm-lint | – |
+| 7 | `deploy` | install k3d + Terraform (pinned, checksum-verified), `make cluster-create`, `make deploy IMAGE_SOURCE=registry`, `make smoke` | helm-lint | – |
 | 8 | `ai-diagnose` | `if: failure()`: see Stage 5 | jobs 1–7 | `actions: read`, `pull-requests: write`, `models: read` |
 | 9 | `notify` | `if: always()`: commit status `ci/pipeline` on the head SHA + job summary table. On failure the status `target_url` points at the run summary, which holds the AI diagnosis | all | `statuses: write` |
 
@@ -193,9 +193,25 @@ Demo: open PR `demo/ai-diagnosis` with a deliberate bug (`/health` returns 500).
 
 Done when: the demo PR has an AI comment that names the failing test, and the run link has been copied into the README.
 
-## Stage 6: dropped
+## Stage 6: Terraform deploy (namespace + app)
 
-Terraform was dropped on 2026-11-16. The spike showed the only k3d provider (`pvotal-tech/k3d` 0.0.7) crash-looping k3s. The cluster is created with `make cluster-create`.
+Decided 2026-11-16: Terraform replaces the `helm upgrade` CLI deploy. It does **not** create the cluster: the spike showed the only k3d provider (`pvotal-tech/k3d` 0.0.7) crash-looping k3s, so `make cluster-create` keeps using the k3d CLI.
+
+`infra/`:
+- `versions.tf`: `required_version` pinned to the local Terraform (1.17.x). Providers `hashicorp/kubernetes` and `hashicorp/helm` pinned to exact versions. `.terraform.lock.hcl` is committed.
+- Providers read `~/.kube/config` with context `var.kube_context` (default `k3d-bigid`).
+- `kubernetes_namespace` `staging`. Use the non-deprecated resource name of the pinned provider version (`kubernetes_namespace` or `kubernetes_namespace_v1`).
+- `helm_release` `whatsmyip`:
+  - `chart = "../charts/whatsmyip"` and `namespace` taken from the namespace resource, so the namespace always comes first.
+  - `atomic = true`, `wait = true`, `timeout = 180`.
+  - Sets `image.repository` and `image.tag` from `var.image_repository` and `var.image_tag`.
+- Variables: `image_repository`, `image_tag` (required, no default), `kube_context`, `namespace` (default `staging`).
+
+Gotchas:
+- **State is local and gitignored.** A deleted cluster leaves stale state, and the next apply would fail. So `make cluster-delete` also removes `infra/terraform.tfstate*`. In CI, the state disappears with the runner, together with the cluster.
+- The kubernetes provider needs a reachable cluster at plan time. `make cluster-create` always runs before `make deploy`.
+- `helm_release` with a local chart path only sees changes through its values or chart version. Every commit changes `image.tag`, so each deploy is a real upgrade. A chart-only change on the same SHA needs a chart `version` bump.
+- The PDF says "deploy using Helm". `helm_release` is Helm, driven by Terraform. The README says so.
 
 ## Stage 7: Docs (≈1.5 h)
 

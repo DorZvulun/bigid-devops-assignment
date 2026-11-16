@@ -48,7 +48,8 @@ Grading = the acceptance checklist in the PDF. The last item is easy to forget: 
 | Tests | pytest | decided based on app language |
 | Container | multi-stage → distroless Python runtime, non-root | requirement in pdf |
 | Local + CI cluster | k3d with Traefik **disabled**. The Service is `type: LoadBalancer`, served by k3s's built-in ServiceLB. The chart keeps an optional Ingress, off by default | decided |
-| Packaging | Helm chart in `charts/` (Helm v4 locally; same version pinned in CI) | decided |
+| Packaging | Helm chart in `charts/`. `helm lint` uses the Helm v4 CLI (same version pinned in CI) | decided |
+| Deploy | Terraform in `infra/`: `kubernetes_namespace` (staging) + `helm_release` (the chart). `make deploy` runs `terraform apply`, locally and in CI. Terraform never creates the cluster; `make cluster-create` does (k3d CLI) | decided |
 | CI | GitHub Actions; public repo `bigid-devops-assignment` | decided |
 | Registry | GHCR (`ghcr.io/<owner>/<image>`), auth via `GITHUB_TOKEN`, public package | decided |
 | Image scan / SBOM | Trivy (fail on fixable HIGH/CRITICAL, SARIF to Security tab) + SBOM artifact | decided after understanding how it works and need to be implemented |
@@ -70,6 +71,7 @@ big-id/
 ├── Dockerfile, .dockerignore
 ├── charts/<app>/            # Deployment, Service, optional Ingress, values.yaml
 ├── k3d-config.yaml
+├── infra/                   # Terraform: staging namespace + helm_release of the chart
 ├── scripts/ai_diagnose.py   # fetch failed-job logs → LLM → PR comment / summary
 └── .github/workflows/ci.yml
 ```
@@ -104,7 +106,7 @@ big-id/
 
 - Liveness, readiness and startup probes, plus resource requests/limits. All are configurable in `values.yaml` with sensible defaults.
 - 2 replicas.
-- Deploy with `helm upgrade --install --rollback-on-failure --wait --timeout`, so a failed rollout rolls back automatically. This is the Helm v4 flag. Never use the deprecated `--atomic` alias.
+- Deploy with Terraform `helm_release` using `atomic = true`, `wait = true` and a `timeout`, so a failed rollout rolls back automatically.
 - gunicorn shuts down gracefully on SIGTERM.
 - CI uses a `concurrency` group per ref (cancel superseded runs) and a `timeout-minutes` on every job.
 - Image tag = commit SHA. Never deploy `latest`. On a PR this is the PR head commit, never GitHub's synthetic merge commit (see PLAN.md Stage 4).
@@ -131,4 +133,4 @@ Unless the human asks:
 - Multi-env promotion
 - Cloud resources
 - Monitoring stack
-- Terraform. Dropped on 2026-11-16: the only k3d Terraform provider crash-looped k3s. The cluster is created with `make cluster-create` (`k3d cluster create --config k3d-config.yaml`).
+- Creating the cluster with Terraform. The only k3d Terraform provider crash-looped k3s (spike, 2026-11-16), so `make cluster-create` uses the k3d CLI.

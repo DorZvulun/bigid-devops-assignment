@@ -17,7 +17,7 @@ Time estimates are agent wall-clock, not human hours.
 
 ## Wave 1: 5 agents in parallel, each in its own git worktree ✅ done
 
-Results: A and C merged. D merged without the `ai-diagnose` job and `mk/ci.mk` (both wait for the AI stage). E is kept on its branch for the AI stage, which runs last. F's Terraform spike failed with the provider, so Terraform was dropped.
+Results: A and C merged. D merged without the `ai-diagnose` job and `mk/ci.mk` (both wait for the AI stage). E is kept on its branch for the AI stage, which runs last. F's spike: the k3d Terraform provider failed, so Terraform does not create the cluster. Human decision: Terraform deploys the namespace and the app instead (`kubernetes_namespace` + `helm_release`, PLAN.md Stage 6), replacing the helm CLI deploy.
 
 | # | Agent | Task | Model | Effort | Est. |
 |---|---|---|---|---|---|
@@ -27,12 +27,13 @@ Results: A and C merged. D merged without the `ai-diagnose` job and `mk/ci.mk` (
 | E | ai | Stage 5.1–5.2: `scripts/ai_diagnose.py` (stdlib only), provider-selection test, real model IDs checked | opus | default | 15–20 min |
 | F | tf | Stage 6.1: Terraform k3d provider spike, time-boxed at 20 min. Uses cluster `bigid-tf` on port `8081`, so it does not clash with agent C | sonnet | default | 20 min |
 
-## Wave 2: sequential, after A and C are merged
+## Wave 2: B and T in parallel, then the main session
 
 | # | Agent | Task | Model | Effort | Est. |
 |---|---|---|---|---|---|
-| B | container | Stage 2: check the distroless Python version, write `Dockerfile` and `.dockerignore`, `mk/container.mk` (`build scan sbom`) | sonnet | default | 10–15 min |
-| — | main session | Stage 3.3–3.4: local `make cluster-create build deploy smoke`. Needs B's image and C's chart | — | — | 10 min |
+| B | container | Stage 2: check the distroless Python version, write `Dockerfile` and `.dockerignore`, `mk/container.mk` (`build scan scan-sarif sbom`). Add the `org.opencontainers.image.source` label. Do not pass `--cache-dir` to Trivy (CI sets `TRIVY_CACHE_DIR`) | sonnet | default | 10–15 min |
+| T | terraform | Stage 6.1: `infra/` (`kubernetes_namespace` + `helm_release`), switch `make deploy` in `mk/k8s.mk` to `terraform apply`, `make cluster-delete` removes local state. Verified with `terraform validate` + `plan` against the running `bigid` cluster (no image yet) | sonnet | default | 15 min |
+| — | main session | Stage 3.3–3.4 + 6.1 check: local `make cluster-create build deploy smoke`. Needs B's image and T's Terraform. Then 6.2: CI deploy job installs pinned Terraform | — | — | 10 min |
 | — | main session | Makefile merge: fold `mk/*.mk` back into one `Makefile` (see below) | — | — | 2–5 min |
 
 ### Makefile merge (last step of Wave 2)

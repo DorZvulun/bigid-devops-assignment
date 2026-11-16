@@ -12,7 +12,7 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 | 3 Helm + k3d | 1.5 h | ⬜ |
 | 4 CI pipeline | 2–3 h | ⬜ |
 | 5 AI diagnosis (done last) | 1.5 h | ⬜ |
-| 6 Terraform | – | dropped |
+| 6 Terraform deploy | 45 m | ⬜ |
 | 7 Docs | 1.5 h | ⬜ |
 | 8 Diagram | 30 m | ⬜ |
 
@@ -53,7 +53,7 @@ Tick a box only after its **Done when** check has passed. Details for each stage
   - Done when: `kubectl get nodes` shows 2 nodes Ready. ✅ k3d-bigid-server-0 + agent-0 Ready, v1.35.5+k3s1, 0 traefik pods
 - [x] **3.2** Write the chart `charts/whatsmyip`: Deployment, Service (`LoadBalancer`), optional Ingress (off by default), values for probes/resources/securityContext/existingSecret.
   - Done when: `make helm-lint` passes with 0 warnings. ✅ `1 chart(s) linted, 0 chart(s) failed`
-- [ ] **3.3** Add `make deploy` (`--rollback-on-failure --wait`, local image import).
+- [ ] **3.3** Add `make deploy` (Terraform apply from Stage 6, local image import).
   - Done when: 2 pods are Running in `staging`.
 - [ ] **3.4** Add `make smoke` (`/health`, `/ready`, and the XFF assert via the LoadBalancer Service on `SMOKE_URL`).
   - Done when: `make smoke` passes, and it fails if you scale to 0.
@@ -82,9 +82,12 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 - [ ] **5.4** Verify both providers: run with the Anthropic key, then with `LLM_PROVIDER=github`.
   - Done when: both runs produced a diagnosis.
 
-## Stage 6: Terraform (dropped)
+## Stage 6: Terraform deploy (namespace + app)
 
-Dropped on 2026-11-16. See PLAN.md Stage 6.
+- [ ] **6.1** Write `infra/` (`kubernetes_namespace` + `helm_release`, providers pinned, lock file committed). `make deploy` runs `terraform apply`. `make cluster-delete` also removes local state.
+  - Done when: `make cluster-create deploy` gives 2 Running pods in `staging`, and a second `terraform plan` shows no changes.
+- [ ] **6.2** CI deploy job installs pinned, checksum-verified Terraform and runs the same `make deploy`.
+  - Done when: the CI `deploy` job is green.
 
 ## Stage 7: Docs
 
