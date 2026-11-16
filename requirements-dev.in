@@ -1,0 +1,3 @@
+-r app/requirements.in
+pytest
+ruff
