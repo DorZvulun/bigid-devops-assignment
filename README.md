@@ -1,6 +1,97 @@
 # whatsmyip
 
-> Work in progress. The remaining sections are written in Stage 7 (see `TASKS.md`).
+A tiny Flask app that returns the client's originating IP, shipped through a full CI pipeline into a local k3d cluster.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /` | Client IP: the left-most `X-Forwarded-For` entry, else the socket peer address |
+| `GET /health` | 200 while the process is up (liveness) |
+| `GET /ready` | 200 when ready to serve (readiness) |
+
+Contents: [Run locally](#run-locally) · [How CI works](#how-ci-works) · [Deploy](#deploy) · [Image](#where-the-image-is-published) · [Secrets](#secrets) · [Trivy](#image-vulnerability-scan-trivy) · [Scan and SBOM output](#scan-and-sbom-output) · [AI diagnosis](#ai-failure-diagnosis) · [Networking](#networking-why-traefik-is-disabled) · [Security](#security) · [Reliability](#reliability) · [Architecture](#architecture) · [Layout](#repo-layout)
+
+## Run locally
+
+Prerequisites:
+
+| Tool | Version |
+|---|---|
+| Docker | any recent |
+| k3d | v5.9.0 |
+| Terraform | ~> 1.17 |
+| Helm | v4 (only for `helm lint`) |
+| uv | 0.11.28 (creates the Python 3.13 venv) |
+| Trivy | 0.76.2 |
+| GNU make | macOS `/usr/bin/make` 3.81 works |
+
+```bash
+make all             # venv lint test build scan cluster-create deploy smoke
+make cluster-delete  # tear down the cluster, Terraform state and kubeconfig
+```
+
+The app is then on `http://localhost:8080`. The cluster's kubeconfig is `~/.kube/big-id-k3d-config.yaml`; k3d never touches your default kubeconfig:
+
+```bash
+KUBECONFIG=~/.kube/big-id-k3d-config.yaml kubectl -n staging get pods
+```
+
+Locally, `/` without an `X-Forwarded-For` header returns a cluster-internal address, because ServiceLB rewrites the source IP.
+
+| Target | Does |
+|---|---|
+| `venv` | Create `.venv` from the hashed `requirements-dev.txt` |
+| `lint` | `ruff check` and `ruff format --check` |
+| `test` | `pytest` |
+| `run` | Run the app with gunicorn on port 8080, without Docker |
+| `build` | `docker build`, tagged with the short commit SHA |
+| `scan` / `scan-sarif` / `sbom` | Trivy gate, SARIF report, CycloneDX SBOM |
+| `cluster-create` | Create the k3d cluster `bigid` and write its kubeconfig |
+| `helm-lint` | `helm lint --strict charts/whatsmyip` |
+| `deploy` | Import the image into k3d, then `terraform apply` |
+| `smoke` | Check `/health`, `/ready`, and that `/` echoes a forwarded IP |
+| `cluster-delete` | Delete the cluster, Terraform state and kubeconfig |
+
+## How CI works
+
+Workflow: `.github/workflows/ci.yml`. Triggers: push to `main`, `pull_request`, `workflow_dispatch`. Every job calls the same `make` targets used locally.
+
+| Job | Needs | What it does |
+|---|---|---|
+| `lint` | | `make venv lint` |
+| `test` | lint | `make venv test` (fails the run on a test failure) |
+| `build` | test | `make build`, saves the image as a run artifact |
+| `scan` | build | Trivy gate, SARIF upload, SBOM artifact (see [Trivy](#image-vulnerability-scan-trivy)) |
+| `push` | scan | `docker push` to GHCR |
+| `helm-lint` | push | `make helm-lint` |
+| `deploy` | helm-lint | Creates a k3d cluster on the runner, `make deploy` (from GHCR), then `make smoke` in the same job, because the cluster disappears when the job ends |
+| `notify` | all, `if: always()` | Sets commit status `ci/pipeline` and writes a job summary table |
+
+- **Image tag = commit SHA.** On a pull request it is the PR head commit, not the synthetic merge commit. `latest` is never used.
+- **Concurrency.** One group per ref; a newer run cancels the superseded one. Every job has `timeout-minutes`.
+- **Least privilege.** The workflow default is `contents: read`. Only `scan` gets `security-events: write`, `push` gets `packages: write`, and `notify` gets `statuses: write`.
+- **Supply chain.** Third-party actions are pinned by full commit SHA. Tool binaries (Trivy, k3d, Helm, Terraform, uv) are pinned by version and verified against a sha256 before use, so a tampered release or a moved tag cannot silently run in the pipeline.
+- **Notification.** Commit status `ci/pipeline` (success or failure) plus a job summary. No third-party apps.
+
+## Deploy
+
+Deploying is a Helm release driven by Terraform (`infra/`):
+
+- `kubernetes_namespace_v1` creates the `staging` namespace.
+- `helm_release` installs `charts/whatsmyip` with the image repository and the commit SHA as tag. It uses `atomic = true`, `wait = true` and `timeout = 180`, so a failed rollout rolls back.
+- Terraform does **not** create the cluster. The k3d Terraform provider crash-looped k3s in a spike, so `make cluster-create` uses the k3d CLI (`k3d-config.yaml`: 1 server, 1 agent, port `8080:80`, Traefik off).
+
+## Where the image is published
+
+`ghcr.io/dorzvulun/whatsmyip:<commit sha>`. The package is public, so `docker pull` works without login.
+
+## Secrets
+
+| Secret | Purpose | Required | Set with |
+|---|---|---|---|
+| `GITHUB_TOKEN` | GHCR push, commit status, SARIF upload | Automatic, per run | Nothing to set |
+| `ANTHROPIC_API_KEY` | AI failure diagnosis (added in the final stage) | Yes, for the AI step | `make secrets` (runs `gh secret set ANTHROPIC_API_KEY`, hidden prompt; the value never lands in a file) |
+
+Nothing secret is in the repo, chart, Makefile or workflow. `.env.example` lists variable names only and `.env` is not tracked. App secrets reach the pod through the chart's `existingSecret`, a pre-existing Kubernetes Secret injected with `envFrom`. The chart never creates secrets. For production, use sealed-secrets or External Secrets Operator.
 
 ## Image vulnerability scan (Trivy)
 
@@ -23,6 +114,21 @@
 
 The image is distroless with only Flask and gunicorn installed, so the expected result is zero or near-zero findings. If one appears, the fix is usually to bump the base image or a pinned dependency.
 
+
+### Scan and SBOM output
+
+| What | Where |
+|---|---|
+| CVE table | `scan` job log |
+| SARIF findings | **Security → Code scanning**, category `trivy` |
+| SBOM | Run artifact `sbom`, file `sbom.cdx.json` (CycloneDX) |
+
+## AI failure diagnosis
+
+A job that runs only when the pipeline fails. It sends the failed-job logs to the Anthropic API and posts the diagnosis as a PR comment or run summary. It needs the `ANTHROPIC_API_KEY` secret (see [Secrets](#secrets)). Added in the final stage.
+
+Link to the failed run where the diagnosis worked: _added after the demo run_
+
 ## Networking: why Traefik is disabled
 
 k3d ships the Traefik ingress controller by default. This project turns it off and exposes the app through a `LoadBalancer` Service instead, served by k3s's built-in ServiceLB. The PDF lists the Ingress as optional, and the chart still has one (`ingress.enabled: false` by default).
@@ -36,6 +142,13 @@ With Traefik in the path, the app could not see the client's IP:
 ServiceLB forwards connections without touching HTTP headers. The client's `X-Forwarded-For` reaches the app unchanged.
 
 ## Security
+### Implemented
+
+- **Pod hardening:** non-root (uid 65532), `readOnlyRootFilesystem`, all capabilities dropped, `allowPrivilegeEscalation: false`, seccomp `RuntimeDefault`.
+- **Image:** multi-stage build into distroless Python `nonroot`. No shell in the runtime image. Base images are pinned by digest and dependencies by hash (`--require-hashes`).
+- **CI:** least-privilege permissions per job, actions pinned by SHA, checksum-verified tool binaries.
+- **Secrets:** none in code; supplied at run time (see [Secrets](#secrets)).
+- **Kubeconfig** lives outside the repo (`~/.kube/big-id-k3d-config.yaml`, mode 600).
 
 ### Public repo and image: what changes if the repo is private
 
@@ -51,3 +164,38 @@ If the repo were private:
   ```
 
 - **Scan results have no Security tab.** Uploading Trivy's SARIF results to **Security → Code scanning** on a private repo requires a paid GitHub subscription (GitHub Advanced Security / Code Security). The SARIF file would stay available as a run artifact only.
+
+### Security hardening (not implemented)
+
+Documented only:
+
+- **`X-Forwarded-For` spoofing.** Clients can forge the header. Trust only N proxy hops (Werkzeug `ProxyFix(x_for=N)`) or restrict which proxy IPs are trusted.
+- **Fork PRs.** Give fork code no secrets, push or deploy. Never combine `pull_request_target` with a checkout of PR code.
+- **AI step.** Logs are untrusted input (prompt injection). Redact token-like strings, cap the size, post the output as text only and never execute it.
+- **Secret managers.** Beyond plain Kubernetes Secrets: sealed-secrets or External Secrets Operator.
+
+## Reliability
+
+- **Probes:** liveness `/health`, readiness `/ready`, startup `/health`. All configurable in `values.yaml`, along with resource requests and limits.
+- **2 replicas.**
+- **Atomic deploys:** the Terraform `helm_release` uses `atomic` and `wait`, so a failed rollout rolls back automatically.
+- **Graceful shutdown:** gunicorn drains on SIGTERM (`terminationGracePeriodSeconds: 30`). Because the root filesystem is read-only, gunicorn runs with `--no-control-socket` and worker temp files in `/dev/shm`.
+- **CI:** concurrency group per ref, `timeout-minutes` on every job.
+- **Image tag = commit SHA**, never `latest`.
+
+## Architecture
+
+See [docs/architecture.html](docs/architecture.html).
+
+## Repo layout
+
+```
+Makefile              single entrypoint
+app/                  Flask app and pinned requirements
+tests/                pytest unit tests
+Dockerfile            multi-stage, distroless runtime
+charts/whatsmyip/     Helm chart
+infra/                Terraform: staging namespace + helm_release
+k3d-config.yaml       local cluster definition
+.github/workflows/    ci.yml
+```
