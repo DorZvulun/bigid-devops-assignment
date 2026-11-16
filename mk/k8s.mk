@@ -10,15 +10,17 @@ cluster:
 
 down:
 	k3d cluster delete $(CLUSTER)
+	rm -f infra/terraform.tfstate infra/terraform.tfstate.backup
 
 helm-lint:
 	helm lint --strict charts/whatsmyip --set image.tag=lint
 
 deploy:
 	if [ "$(IMAGE_SOURCE)" = local ]; then k3d image import $(IMAGE):$(GIT_SHA) -c $(CLUSTER); fi
-	helm upgrade --install whatsmyip charts/whatsmyip -n $(NAMESPACE) --create-namespace \
-		--rollback-on-failure --wait --timeout 3m \
-		--set image.repository=$(IMAGE) --set image.tag=$(GIT_SHA)
+	terraform -chdir=infra init -input=false
+	terraform -chdir=infra apply -auto-approve -input=false \
+		-var image_repository=$(IMAGE) -var image_tag=$(GIT_SHA) \
+		-var namespace=$(NAMESPACE) -var kube_context=k3d-$(CLUSTER)
 
 smoke:
 	@for p in /health /ready; do \
