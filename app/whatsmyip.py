@@ -14,7 +14,7 @@ def index():
 
 @app.get("/health")
 def health():
-    return jsonify(status="ok")
+    return jsonify(status="ok"), 500
 
 
 @app.get("/ready")
