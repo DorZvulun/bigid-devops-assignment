@@ -2,7 +2,7 @@
 
 Tick a box only after its **Done when** check has passed. Details for each stage are in `PLAN.md`.
 
-**Now:** Wave 3: push, then fix CI until green (see `plans/agent-workflow-planning.md`)
+**Now:** Stage 7.2 (HTML explainer), then Stage 5 (AI diagnosis, last)
 
 | Stage | Est. | Status |
 |---|---|---|
@@ -10,9 +10,9 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 | 1 App + tests | 1 h | ✅ |
 | 2 Container | 45 m | ✅ |
 | 3 Helm + k3d | 1.5 h | ✅ |
-| 4 CI pipeline | 2–3 h | ⬜ |
+| 4 CI pipeline | 2–3 h | ✅ (except `make secrets`, Stage 5) |
 | 5 AI diagnosis (done last) | 1.5 h | ⬜ |
-| 6 Terraform deploy | 45 m | ⬜ |
+| 6 Terraform deploy | 45 m | ✅ |
 | 7 Docs | 1.5 h | ⬜ |
 | 8 Diagram | 30 m | ⬜ |
 
@@ -60,16 +60,16 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 
 ## Stage 4: CI pipeline
 
-- [ ] **4.1** Write `ci.yml` jobs 1–3: lint → test → build. Add concurrency, permissions, timeouts, and SHA-pinned actions.
-  - Done when: these jobs are green on push.
-- [ ] **4.2** Add jobs 4–5: scan (SARIF + SBOM artifact) and push to GHCR.
-  - Done when: the image `:<sha>` is on GHCR and the SARIF is in the Security tab.
-- [ ] **4.3** Manual step: set the GHCR package to public.
-  - Done when: `docker pull ghcr.io/<owner>/whatsmyip:<sha>` works while logged out.
-- [ ] **4.4** Add jobs 6–7: helm-lint, then deploy + smoke on k3d in the runner.
-  - Done when: the whole pipeline is green end to end.
+- [x] **4.1** Write `ci.yml` jobs 1–3: lint → test → build. Add concurrency, permissions, timeouts, and SHA-pinned actions.
+  - Done when: these jobs are green on push. ✅ [run](https://github.com/DorZvulun/bigid-devops-assignment/actions/runs/43902297256): lint 10s, test 9s, build 32s
+- [x] **4.2** Add jobs 4–5: scan (SARIF + SBOM artifact) and push to GHCR.
+  - Done when: the image `:<sha>` is on GHCR and the SARIF is in the Security tab. ✅ image `:b1fc598…` on GHCR; Code scanning shows tool Trivy, category `trivy`, 0 results; artifact `sbom` 9 KB
+- [x] **4.3** Manual step: set the GHCR package to public.
+  - Done when: `docker pull ghcr.io/<owner>/whatsmyip:<sha>` works while logged out. ✅ not needed: the package inherited public visibility from the public repo. Anonymous manifest fetch returned HTTP 200
+- [x] **4.4** Add jobs 6–7: helm-lint, then deploy + smoke on k3d in the runner.
+  - Done when: the whole pipeline is green end to end. ✅ all 8 jobs green; deploy (k3d + Terraform + smoke) 75s
 - [ ] **4.5** Add job 8 (notify: commit status + job summary) and `make secrets`.
-  - Done when: the commit shows the `ci/pipeline` status, and the run summary shows the table.
+  - Done when: the commit shows the `ci/pipeline` status, and the run summary shows the table. ⏳ notify done: commit status `ci/pipeline` = success, job summary table written. `make secrets` moves to Stage 5 (AI).
 
 ## Stage 5: AI failure diagnosis (done last, after Stage 8; Anthropic only)
 
@@ -86,13 +86,13 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 
 - [x] **6.1** Write `infra/` (`kubernetes_namespace` + `helm_release`, providers pinned, lock file committed). `make deploy` runs `terraform apply`. `make cluster-delete` also removes local state.
   - Done when: `make cluster-create deploy` gives 2 Running pods in `staging`, and a second `terraform plan` shows no changes. ✅ `Plan: 2 to add` → apply OK; second plan exit 0 (no changes). Namespace resource is `kubernetes_namespace_v1`
-- [ ] **6.2** CI deploy job installs pinned, checksum-verified Terraform and runs the same `make deploy`.
-  - Done when: the CI `deploy` job is green.
+- [x] **6.2** CI deploy job installs pinned, checksum-verified Terraform and runs the same `make deploy`.
+  - Done when: the CI `deploy` job is green. ✅ CI deploy job green with Terraform 1.17.1 (checksum-verified)
 
 ## Stage 7: Docs
 
 - [ ] **7.1** Write `README.md` covering every item in CLAUDE.md's "README must cover" list, including the failed-run link.
-  - Done when: every item on that list is checked off.
+  - Done when: every item on that list is checked off. ⏳ written (201 lines, every item present); only the failed-run link is missing, added in Stage 5.
 - [ ] **7.2** Write the ADHD-friendly HTML explainer covering the architecture and how to run the project.
   - Done when: it opens in a browser and the quick-start commands work.
 

@@ -160,7 +160,7 @@ Notes:
   - On `pull_request`, `github.sha` is GitHub's synthetic test-merge commit (`refs/pull/N/merge`). It is on no branch. So PR jobs check out `ref: <head sha>` and tag with it. The image then matches the PR's last commit exactly.
   - On `push` to `main`, `github.sha` is the pushed commit (the merge/squash result), so main gets its own image.
   - `notify` sets the commit status on the same SHA.
-- **One-time manual step:** after the first push, set the GHCR package visibility to **public** in the GitHub UI. The cluster can then pull without an `imagePullSecret`. The README documents this.
+- GHCR visibility: no manual step was needed. The package pushed by the workflow inherited **public** visibility from the public repo (verified 2026-11-16 with an anonymous manifest fetch), so the cluster pulls without an `imagePullSecret`.
 
 `make secrets` (the user runs it once, values never land in a file):
 - `gh secret set ANTHROPIC_API_KEY`. This opens a hidden prompt and is optional, because `auto` falls back to GitHub Models.
@@ -233,5 +233,5 @@ Gotchas:
 ## Top risks
 
 1. **Distroless/builder Python version mismatch** breaks the container at run time. Both are pinned to 3.13; confirm the distroless version in task 2.1.
-2. **Pulling from GHCR fails in CI** if the package is private. Stage 4 has the one-time manual visibility step.
+2. **Pulling from GHCR fails in CI** if the package is private. Resolved: the package inherited public visibility from the repo.
 3. **Debugging CI loops are slow.** Use `act` for quick checks of the `lint`/`test` jobs, and use `workflow_dispatch` reruns.
