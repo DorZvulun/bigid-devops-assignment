@@ -47,7 +47,7 @@ Grading = the acceptance checklist in the PDF. The last item is easy to forget: 
 | Lint / format | ruff (superset of flake8 rules) | decided based on pdf |
 | Tests | pytest | decided based on app language |
 | Container | multi-stage → distroless Python runtime, non-root | requirement in pdf |
-| Local + CI cluster | k3d (built-in Traefik ingress + ServiceLB) | decided |
+| Local + CI cluster | k3d with Traefik **disabled**. The Service is `type: LoadBalancer`, served by k3s's built-in ServiceLB. The chart keeps an optional Ingress, off by default | decided |
 | Packaging | Helm chart in `charts/` (Helm v4 locally; same version pinned in CI) | decided |
 | CI | GitHub Actions; public repo `bigid-devops-assignment` | decided |
 | Registry | GHCR (`ghcr.io/<owner>/<image>`), auth via `GITHUB_TOKEN`, public package | decided |
@@ -111,7 +111,7 @@ big-id/
 
 - Liveness, readiness and startup probes, plus resource requests/limits. All are configurable in `values.yaml` with sensible defaults.
 - 2 replicas.
-- Deploy with `helm upgrade --install --atomic --wait --timeout`, so a failed rollout rolls back automatically. In Helm v4, `--atomic` is a deprecated alias of `--rollback-on-failure`. It still works and prints a deprecation warning.
+- Deploy with `helm upgrade --install --rollback-on-failure --wait --timeout`, so a failed rollout rolls back automatically. This is the Helm v4 flag. Never use the deprecated `--atomic` alias.
 - gunicorn shuts down gracefully on SIGTERM.
 - CI uses a `concurrency` group per ref (cancel superseded runs) and a `timeout-minutes` on every job.
 - Image tag = commit SHA. Never deploy `latest`. On a PR this is the PR head commit, never GitHub's synthetic merge commit (see PLAN.md Stage 4).
@@ -127,6 +127,7 @@ big-id/
 - Link to the failed run where the AI diagnosis worked
 - The decided security measures, plus the "Security hardening" section (document-only items)
 - Reliability measures
+- Why Traefik is disabled (see PLAN.md Stage 3)
 
 ## Out of scope
 

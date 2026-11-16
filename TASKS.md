@@ -51,11 +51,11 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 
 - [ ] **3.1** Write `k3d-config.yaml` and the targets `make cluster` / `make down`.
   - Done when: `kubectl get nodes` shows 2 nodes Ready.
-- [ ] **3.2** Write the chart `charts/whatsmyip`: Deployment, Service, Ingress, values for probes/resources/securityContext/existingSecret.
+- [ ] **3.2** Write the chart `charts/whatsmyip`: Deployment, Service (`LoadBalancer`), optional Ingress (off by default), values for probes/resources/securityContext/existingSecret.
   - Done when: `make helm-lint` passes with 0 warnings.
-- [ ] **3.3** Add `make deploy` (`--atomic --wait`, local image import).
+- [ ] **3.3** Add `make deploy` (`--rollback-on-failure --wait`, local image import).
   - Done when: 2 pods are Running in `staging`.
-- [ ] **3.4** Add `make smoke` (`/health`, `/ready`, and the XFF assert via the ingress).
+- [ ] **3.4** Add `make smoke` (`/health`, `/ready`, and the XFF assert via the LoadBalancer Service on `SMOKE_URL`).
   - Done when: `make smoke` passes, and it fails if you scale to 0.
 
 ## Stage 4: CI pipeline

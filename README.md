@@ -23,6 +23,18 @@
 
 The image is distroless with only Flask and gunicorn installed, so the expected result is zero or near-zero findings. If one appears, the fix is usually to bump the base image or a pinned dependency.
 
+## Networking: why Traefik is disabled
+
+k3d ships the Traefik ingress controller by default. This project turns it off and exposes the app through a `LoadBalancer` Service instead, served by k3s's built-in ServiceLB. The PDF lists the Ingress as optional, and the chart still has one (`ingress.enabled: false` by default).
+
+With Traefik in the path, the app could not see the client's IP:
+
+- By default, Traefik does not trust `X-Forwarded-*` headers that come from untrusted IPs. It drops them and sets its own ([forwarded headers](https://doc.traefik.io/traefik/routing/entrypoints/#forwarded-headers)).
+- The k3d load balancer forwards plain TCP, so the only peer Traefik sees is that load balancer's internal Docker IP.
+- So `/` would return an internal cluster IP instead of the client's IP.
+
+ServiceLB forwards connections without touching HTTP headers. The client's `X-Forwarded-For` reaches the app unchanged.
+
 ## Security
 
 ### Public repo and image: what changes if the repo is private

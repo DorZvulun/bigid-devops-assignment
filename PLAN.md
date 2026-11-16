@@ -20,7 +20,7 @@ Names (decided):
                                 │ pull                                    │
                                 ▼                                         ▼
    k3d cluster (in runner / on laptop)                     PR comment + job summary
-     client ─▶ Traefik ingress (:8080) ─▶ Service ─▶ Deployment (2 pods, ns: staging)
+     client ─▶ k3d LB (:8080) ─▶ Service (LoadBalancer, ServiceLB) ─▶ Deployment (2 pods, ns: staging)
 ```
 
 Run locally, the flow is the same: `make all` (venv lint test build scan cluster deploy smoke) builds the image and imports it into k3d instead of pulling it from GHCR.
@@ -90,7 +90,8 @@ Done when: the image is ≤ ~70 MB, `make scan` passes, and `docker run` + `curl
 
 `k3d-config.yaml`:
 - Cluster `bigid`, 1 server + 1 agent.
-- Port `8080:80@loadbalancer`, which exposes Traefik on the laptop.
+- Traefik disabled: `--disable=traefik` on the servers, set via `options.k3s.extraArgs` with `nodeFilters: [server:*]`.
+- Port `8080:80@loadbalancer`. It forwards to the chart's `LoadBalancer` Service through k3s's built-in ServiceLB.
 - k3s version pinned.
 
 `charts/whatsmyip/` holds `Chart.yaml`, `values.yaml`, `templates/{deployment,service,ingress,_helpers.tpl,NOTES.txt}`.
@@ -104,7 +105,8 @@ Done when: the image is ≤ ~70 MB, `make scan` passes, and `docker run` + `curl
   - `runAsNonRoot`, `readOnlyRootFilesystem`
   - drop `ALL` capabilities, `allowPrivilegeEscalation: false`
   - `seccompProfile: RuntimeDefault`
-- `ingress.enabled` (default `true`), `ingress.className: traefik`, `ingress.host: ""` (no host means match any)
+- `service.type` (default `LoadBalancer`), `service.port: 80`
+- `ingress.enabled` (default `false`), `ingress.className: ""`, `ingress.host: ""` (no host means match any). Kept so the chart works on clusters that have an ingress controller.
 - `existingSecret: ""`. When set, the Deployment adds `envFrom: secretRef`. Nothing secret lives in the chart.
 - `env: {}` for plain non-secret env vars.
 
@@ -112,7 +114,7 @@ Make targets:
 - `make cluster` runs `k3d cluster create --config k3d-config.yaml`. It is idempotent.
 - `make helm-lint` runs `helm lint charts/whatsmyip`.
 - `make deploy`:
-  - Runs `helm upgrade --install whatsmyip charts/whatsmyip -n staging --create-namespace --atomic --wait --timeout 3m --set image.repository=… --set image.tag=$(GIT_SHA)`.
+  - Runs `helm upgrade --install whatsmyip charts/whatsmyip -n staging --create-namespace --rollback-on-failure --wait --timeout 3m --set image.repository=… --set image.tag=$(GIT_SHA)`.
   - Locally it runs `k3d image import` first, using `IMAGE_SOURCE=local|registry`.
 - `make smoke` (base URL is `SMOKE_URL ?= http://localhost:8080`, so the Terraform cluster on `:8081` can override it):
   - `curl -fsS $(SMOKE_URL)/health` and `/ready`.
@@ -121,7 +123,11 @@ Make targets:
 - `make down` runs `k3d cluster delete bigid`.
 - `make all` runs `venv lint test build scan cluster deploy smoke`. It is the one command for a fresh computer.
 
-Gotcha: Traefik **appends** to `X-Forwarded-For`. The client's header stays left-most, which is what the smoke test relies on. This is also exactly the spoofing risk the README explains.
+Why Traefik is disabled (the README explains this too):
+- By default, Traefik does not trust `X-Forwarded-*` headers from untrusted IPs. It replaces them with its own.
+- The k3d load balancer forwards plain TCP, so Traefik would see the load balancer's container IP as the client.
+- So with Traefik in the path, `/` would return that internal Docker IP, not the client's IP, and the smoke test's XFF check would fail.
+- ServiceLB forwards connections without touching HTTP headers, so the client's `X-Forwarded-For` reaches the app unchanged. This is also exactly the spoofing risk the README explains.
 
 Done when: `make cluster build deploy smoke` passes from a clean laptop state, and `helm lint` is clean.
 
