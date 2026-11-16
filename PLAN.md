@@ -170,7 +170,7 @@ Done when: a push to `main` turns every job green, the image is visible on GHCR,
 
 ## Stage 5: AI failure diagnosis (≈1.5 h), done last
 
-Human decision 2026-11-16: this stage runs after Stage 8. The provider is **[OPEN]** because GitHub Models was retired on 2026-07-30. Agent E's script (branch `worktree-agent-a5ade5687d7763460`) is kept for this stage. The `ai-diagnose` CI job and `make secrets` are added here too.
+Human decision 2026-11-16: this stage runs after Stage 8. The provider is Anthropic only (GitHub Models was retired on 2026-07-30), so the `LLM_PROVIDER` switch and the `github` path in agent E's script are removed in this stage. Agent E's script (branch `worktree-agent-a5ade5687d7763460`) is kept for this stage. The `ai-diagnose` CI job and `make secrets` are added here too.
 
 `scripts/ai_diagnose.py` uses the stdlib only (`urllib`), so it adds no dependencies:
 1. Lists the jobs of the current run via the GitHub API (`GITHUB_TOKEN`). It keeps the jobs whose `conclusion == failure`.

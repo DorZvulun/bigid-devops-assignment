@@ -71,7 +71,7 @@ Tick a box only after its **Done when** check has passed. Details for each stage
 - [ ] **4.5** Add job 8 (notify: commit status + job summary) and `make secrets`.
   - Done when: the commit shows the `ci/pipeline` status, and the run summary shows the table.
 
-## Stage 5: AI failure diagnosis (done last, after Stage 8; provider [OPEN])
+## Stage 5: AI failure diagnosis (done last, after Stage 8; Anthropic only)
 
 - [ ] **5.1** Write `scripts/ai_diagnose.py`: fetch failed-job logs, select the provider (`auto|anthropic|github`), call the LLM, write the summary + PR comment.
   - Done when: a local dry run against an old failed run prints a diagnosis.

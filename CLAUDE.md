@@ -53,16 +53,11 @@ Grading = the acceptance checklist in the PDF. The last item is easy to forget: 
 | Registry | GHCR (`ghcr.io/<owner>/<image>`), auth via `GITHUB_TOKEN`, public package | decided |
 | Image scan / SBOM | Trivy (fail on fixable HIGH/CRITICAL, SARIF to Security tab) + SBOM artifact | decided after understanding how it works and need to be implemented |
 | Notification | GitHub commit status `ci/pipeline` + job summary, no third-party apps (no Slack) | decided |
-| AI failure diagnosis | Provider **[OPEN]**: GitHub Models was retired on 2026-07-30, so the planned fallback is gone. Decided in the AI stage, which runs last | **[OPEN]** |
+| AI failure diagnosis | Anthropic API only. `ANTHROPIC_API_KEY` is a required secret. Built last, after everything else works | decided |
 
-### LLM provider switch (**[OPEN]**, was decided before GitHub Models was retired)
+### LLM provider (decided 2026-11-16)
 
-The AI step runs in **CI**, not in the Helm-deployed app, so the provider switch lives in CI config:
-
-- GitHub repo variable `LLM_PROVIDER=auto|anthropic|github`. The default is `auto`.
-- `anthropic` needs the secret `ANTHROPIC_API_KEY`.
-- `github` uses GitHub Models with `permissions: models: read` and needs no secret.
-- `auto` uses Anthropic if the key exists, otherwise falls back to GitHub Models.
+Anthropic only. GitHub Models was retired on 2026-07-30, so there is no keyless fallback and no `LLM_PROVIDER` switch. The AI step needs the secret `ANTHROPIC_API_KEY`, set with `make secrets`. It is built last, after the rest of the pipeline works.
 
 ## Planned layout
 
