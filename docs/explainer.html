@@ -91,7 +91,17 @@
   </table>
 </div>
 <p>The cluster has its own kubeconfig at <code>~/.kube/big-id-k3d-config.yaml</code>. Your default kubeconfig is never touched.</p>
-<p>Without an <code>X-Forwarded-For</code> header, <code>/</code> returns a cluster-internal address. Cause: the local load balancer rewrites the source IP. That is expected.</p>
+<details><summary>Browser on <code>localhost:8080</code> shows <code>10.42.0.1</code>, not my IP. Expected.</summary>
+  <p><code>10.42.0.1</code> is the node's bridge gateway, not a pod and not you. Each local hop replaces the source address:</p>
+  <ol>
+    <li>Browser connects to <code>127.0.0.1:8080</code>.</li>
+    <li>Docker Desktop forwards the port into its VM: source becomes the VM's gateway.</li>
+    <li>k3d load balancer (nginx, plain TCP proxy) opens a new connection: source becomes its container IP.</li>
+    <li>ServiceLB and kube-proxy (<code>externalTrafficPolicy: Cluster</code>) apply SNAT: source becomes the node gateway.</li>
+  </ol>
+  <p>Best case locally would be <code>127.0.0.1</code> or Docker's gateway. Browser and server run on the same machine, so there is no public client IP to see.</p>
+  <p>The app is correct. In production an internet-facing load balancer or ingress sets <code>X-Forwarded-For</code>, and the app returns the left-most entry. <code>make smoke</code> tests that path by sending the header. Details: README → Limitations.</p>
+</details>
 
 <h2 id="request">3. Request path</h2>
 <div class="flow">
